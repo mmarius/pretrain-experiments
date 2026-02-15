@@ -275,6 +275,11 @@ class OLMoCoreFramework(Framework):
         training_cmd.append(f"trainer.max_duration.value={target_step}")
         training_cmd.append(f"trainer.max_duration.unit=steps")
 
+        # Override hard_stop to null. OLMo-3 config scripts set hard_stop
+        # (e.g. Duration.steps(597046)) which would cause immediate termination
+        # when resuming from a checkpoint with global_step beyond that value.
+        training_cmd.append(f"trainer.hard_stop=null")
+
         # Log metrics every step
         training_cmd.append(f"trainer.metrics_collect_interval=1")
 
