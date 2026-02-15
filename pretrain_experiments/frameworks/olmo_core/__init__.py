@@ -269,16 +269,14 @@ class OLMoCoreFramework(Framework):
             training_cmd.append(f"trainer.load_path={checkpoint.get_path()}")
             training_cmd.append(f"trainer.load_trainer_state=true")
 
-        # Set max_duration as absolute target step.
-        # With trainer state restored, global_step resumes from the checkpoint
-        # (e.g. 1,000,000), so max_duration must be the absolute target (e.g. 1,000,100).
-        training_cmd.append(f"trainer.max_duration.value={target_step}")
-        training_cmd.append(f"trainer.max_duration.unit=steps")
-
-        # Override hard_stop to null. OLMo-3 config scripts set hard_stop
-        # (e.g. Duration.steps(597046)) which would cause immediate termination
-        # when resuming from a checkpoint with global_step beyond that value.
-        training_cmd.append(f"trainer.hard_stop=null")
+        # Use hard_stop to control when training ends, NOT max_duration.
+        # max_duration is also used by the LR scheduler as t_max for cosine decay.
+        # Overriding it to target_step would compress the entire LR schedule, putting
+        # the LR at its minimum. By leaving max_duration unchanged (from the Python
+        # config script), we preserve the original LR schedule.
+        # hard_stop is purely a stopping condition with no effect on the LR schedule.
+        training_cmd.append(f"trainer.hard_stop.value={target_step}")
+        training_cmd.append(f"trainer.hard_stop.unit=steps")
 
         # Log metrics every step
         training_cmd.append(f"trainer.metrics_collect_interval=1")
