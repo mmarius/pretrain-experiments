@@ -4,41 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-pretrain-experiments is a research framework for conducting controlled pretraining experiments on language models, primarily OLMo-2 (Allen AI). The framework enables:
+pretrain-experiments is a research framework for conducting controlled pretraining experiments on language models. The framework enables:
 - Continuing training from checkpoints
 - Injecting custom text/tokens into training data at precise positions
 - Running evaluations on trained checkpoints
 - Tracking experiments with Weights & Biases
 
-## Installation
+## Build & Test Commands
 
 ```bash
-# Install from GitHub
-pip install git+https://github.com/sbordt/pretrain-experiments.git
-
-# Or install in development mode
-git clone https://github.com/sbordt/pretrain-experiments.git
-cd pretrain-experiments
+# Install in development mode
 pip install -e .
+
+# Install with optional eval/dev dependencies
+pip install -e ".[eval]"    # thefuzz, rouge-score
+pip install -e ".[dev]"     # pytest, black, ruff
+
+# Run all tests
+pytest
+
+# Run a single test file
+pytest tests/test_insertion_map.py -v
+
+# Run a specific test
+pytest tests/test_token_insertion.py::test_function_name -v
+
+# Formatting and linting
+black pretrain_experiments/
+ruff check pretrain_experiments/
 ```
 
 ## Running Experiments
 
 ```bash
-# Main entry point - run a pretraining experiment
+# Main entry point
 pretrain-experiments config/your-config.yaml
 
 # Or using python -m
 python -m pretrain_experiments config/your-config.yaml
 
-# Resume a previous W&B run
+# CLI flags
 pretrain-experiments config/your-config.yaml --resume_run_id <wandb_id>
-
-# Include checkpoint step in W&B run name
 pretrain-experiments config/your-config.yaml --add-step-to-run-name
-
-# Clean up experiment folder after completion
 pretrain-experiments config/your-config.yaml --delete-experiment-folder
+
+# Override config values from CLI via dot notation
+pretrain-experiments config/your-config.yaml --training.num_steps 100
 ```
 
 ## Environment Variables
@@ -55,35 +66,38 @@ pretrain-experiments config/your-config.yaml --delete-experiment-folder
 - `get_step()`: Get training step number
 - `as_hf_temporary()`: Context manager for temporary HF conversion
 
-**Trainer** (`trainer.py`): Abstract interface for training frameworks
-- `train(checkpoint, num_steps, save_folder, config)`: Run training
+**Framework** (`framework.py`): Abstract interface for training frameworks
+- `train(checkpoint, num_steps, save_folder)`: Run training
+- `set_experiments(insert_dict)`: Configure data insertions
+- `get_initial_checkpoint()`: Load starting checkpoint
+- Registered via `@register_framework(name)` decorator; retrieved with `get_framework(name)`
 
-### Main Execution Flow (pretrain_experiment.py)
+### Supported Frameworks (`frameworks/`)
 
-1. Parse YAML config with `flexible_config` (supports environment variable substitution via `${VAR}`)
+- **OLMo** (`frameworks/olmo/`): OLMo-2 — data insertion via pickle + memmap wrapping, `step<N>-unsharded` checkpoints
+- **OLMo-Core** (`frameworks/olmo_core/`): OLMo-3 — data insertion via HDF5 insertion maps + `OLMO_CORE_INSERTION_MAP_FILE` env var, `step<N>` checkpoints
+- **HuggingFace** (`frameworks/huggingface/`): Generic HuggingFace models
+
+### Main Execution Flow (`pretrain_experiment.py`)
+
+1. Parse YAML config with `flexible_config` (supports `${VAR}` substitution and CLI dot-notation overrides)
 2. Initialize W&B tracking
 3. Load/download initial checkpoint
 4. Build insertion dictionary (texts/tokens to inject)
-5. Training loop: convert checkpoint -> insert data -> run torchrun -> evaluate
+5. Training loop: set experiments → run torchrun → evaluate
 6. Final evaluation and cleanup
 
-### OLMo Integration (integrations/olmo/)
+### Data Insertion Pipeline
 
-- `integration.py`: Core data insertion logic via `create_olmo_insert_dict()`
-- `OLMo2Trainer.py`: Distributed training orchestration using torchrun
-- `OLMo2UnshardedCheckpoint.py`: OLMo checkpoint format handling
+- **InsertionBuilder** (`experiments.py`): Builds `insert_dict` from config (supports `add-texts-from-file`, `add-tokens-from-file`, `dynamic-control`, `gaussian-poisoning`)
+- **IntervalSet** (`token_insertion.py`): Treap-based disjoint interval tracking to avoid duplicate insertions
+- **InsertionMapReader/Writer** (`insertion_map.py`): HDF5 storage for insertion maps (index → [(position, [token_ids])])
+- **`convert_insert_dict_to_index_map()`** (`token_insertion.py`): Converts global token positions to sequence-indexed format
 
-### Data Structures
+### Evaluation (`evaluation/`)
 
-- **IntervalSet** (in `token_insertion.py`): Treap-based disjoint interval tracking for avoiding duplicate insertions
-- **InsertionMapReader/Writer** (`insertion_map.py`): HDF5 storage for insertion maps (index → [(position, [token_ids])]), where index can be sequence index, batch index, etc.
-
-### Utility Functions (script_utils.py)
-
-- `find_free_port()`: Allocate ports for torchrun (starts at 29501)
-- `load_jsonl()`/`save_jsonl()`: JSONL file I/O
-- `run_python_script()`: Execute external scripts with YAML result parsing
-- `savely_remove_anything()`: Safe file/directory deletion
+- **EvaluationRunner** (`evaluation.py`): Runs evaluations on checkpoints
+- **train-once-answer-all/**: Specialized evaluations (fictional knowledge, verbatim memorization, prompt extraction, mathematical reasoning)
 
 ## Configuration
 
@@ -95,10 +109,9 @@ save_folder: "${EXPERIMENTS_SAVE_PATH}/..."
 wandb:
   name: <run_name>
   entity: <entity>
-olmo_repository_path: <path>
 model:
-  type: olmo2
-  config: <olmo_config.yaml>
+  type: olmo2|olmo_core
+  config: <config_path>
   checkpoint_url: <url>
   checkpoint_step: <int>
 training:
@@ -121,6 +134,7 @@ eval:
 ## Key Implementation Notes
 
 - Data insertion wraps memmap dataset (valid only for first epoch) to avoid reshuffling complexity
-- Checkpoint naming follows pattern `step<N>-unsharded` for step parsing
+- OLMo-2 checkpoint naming follows `step<N>-unsharded`; OLMo-Core uses `step<N>`
 - Training failures trigger retries with exponential backoff (up to 10 attempts)
 - Uses subprocess isolation for torchrun training
+- OLMo-Core data insertion requires modifications in the OLMo-Core repo (`/Users/sbordt/Nextcloud/OLMo-core/`), marked with `### Pretrain-Experiments Data Insertion ###` comments
