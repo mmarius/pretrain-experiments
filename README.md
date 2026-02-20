@@ -1,6 +1,14 @@
-# pretrain-experiments
+<div align="center">
 
-A framework for controlled (continual) pretraining experiments with language models.
+# Pretrain Experiments
+
+**A framework for controlled pretraining experiments with language models**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org)
+[![Paper](https://img.shields.io/badge/Paper-arXiv%202509.23383-b31b1b.svg)](https://arxiv.org/abs/2509.23383)
+
+</div>
 
 <p align="center">
   <img src="resources/Pretrain-Experiments-Illustration.png" alt="Pretrain Experiments Overview">
@@ -12,11 +20,11 @@ Built to support the experiments in [*Train Once, Answer All*](https://arxiv.org
 
 ## Features
 
-- **Data interventions** — inject specific texts or token sequences at precise positions in the training data
-- **Pluggable training backends** — currently supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), with a framework abstraction for adding others
-- **Integrated evaluation** — run custom evaluation scripts and benchmarks on every checkpoint
-- **Experiment tracking** — automatic logging to Weights & Biases
-- **YAML configuration** — declarative experiment configs with environment variable substitution and CLI overrides
+- **Data interventions** — inject texts or tokens at precise training positions
+- **Multiple backends** — supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to others
+- **Integrated evaluation** — run benchmarks and custom scripts on every checkpoint
+- **Experiment tracking** — automatic Weights & Biases logging
+- **Declarative configs** — YAML with env var substitution and CLI overrides
 
 ## Installation
 
@@ -33,7 +41,7 @@ pip install -e .
 You need at least one training backend. Each requires a modified fork with data insertion support.
 
 <details>
-<summary><b>OLMo-2</b></summary>
+<summary><b>OLMo-2</b> (used in the ICLR 2026 paper)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo
@@ -43,10 +51,12 @@ pip install -e .[all]
 pip install h5py
 ```
 
+Set `OLMO_REPO` to the clone path, or place it alongside the `pretrain-experiments` directory.
+
 </details>
 
 <details>
-<summary><b>OLMo-3</b></summary>
+<summary><b>OLMo-3</b> (OLMo-Core, for newer models)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo-core
@@ -56,11 +66,11 @@ pip install -e .[all]
 pip install h5py
 ```
 
+Set `OLMO_CORE_REPO` to the clone path, or place it alongside the `pretrain-experiments` directory.
+
 </details>
 
-The example configs assume the framework repository is located alongside the pretrain-experiments directory.
-
-## Quick Start
+## Getting Started
 
 Experiments are defined in YAML config files. Run one with:
 
@@ -73,6 +83,11 @@ Override any config parameter from the command line using dot notation:
 ```bash
 pretrain-experiments config/your-config.yaml --training.num_steps 100
 ```
+
+The [`config/`](config/) directory contains ready-to-use examples:
+
+- [`OLMo-3-1025-7B-pretrain-1.yaml`](config/OLMo-3-1025-7B-pretrain-1.yaml) — continue pretraining OLMo-3 7B with text insertions and evaluation (OLMo-Core backend)
+- [`train-once-answer-all/`](config/train-once-answer-all/) — configs that reproduce the paper experiments (OLMo-2 backend)
 
 ## Configuration
 
