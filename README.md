@@ -18,11 +18,13 @@ Take a language model checkpoint, continue training with targeted data intervent
 
 ## Features
 
-- **Data interventions** — inject texts or tokens at precise training positions
-- **Multiple backends** — supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to others
-- **Integrated evaluation** — run benchmarks and custom scripts on every checkpoint
-- **Experiment tracking** — automatic Weights & Biases logging
-- **Declarative configs** — YAML with env var substitution and CLI overrides
+| | |
+|---|---|
+| **Data interventions** | Inject texts or tokens at precise positions in the training data |
+| **Multiple backends** | Supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to other frameworks |
+| **Integrated evaluation** | Run benchmarks and custom evaluation scripts on every checkpoint |
+| **Experiment tracking** | Automatic Weights & Biases logging |
+| **Declarative configs** | YAML with environment variable substitution and CLI overrides |
 
 ## Installation
 
@@ -131,6 +133,18 @@ pretrain-experiments config/OLMo-3-1025-7B-pretrain-1.yaml --training.num_steps 
 ```
 
 See the [`config/`](config/) directory for more examples, including configs that reproduce the [paper experiments](config/train-once-answer-all/). For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
+
+## How Insertions Work
+
+Insertions modify the training data that the model sees during continued pretraining. Each insertion is a sequence of tokens — either raw text (automatically tokenized) or pre-tokenized token IDs — that gets spliced into the training stream.
+
+**Placement.** By default, insertions are placed at random positions across the training steps. You can also restrict placement to a specific range of steps, or specify exact token positions for full control.
+
+**Multiple sources.** A single experiment can combine insertions from multiple JSONL files — for example, one file with factual knowledge and another with evaluation questions. Each source is configured independently with its own repetition count and placement mode.
+
+**Repetitions.** Each text can be repeated multiple times (e.g., `repetitions: 4`) to increase exposure during training. Fractional values like `0.5` randomly sample a subset.
+
+For details on all insertion types and modes, see [`docs/insertions.md`](docs/insertions.md).
 
 ## Contributing
 
