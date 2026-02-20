@@ -70,7 +70,7 @@ Set `OLMO_CORE_REPO` to the clone path, or place it alongside the `pretrain-expe
 
 ## Getting Started
 
-The following example inserts ARC-Challenge benchmark questions into OLMo-3 7B training data and evaluates whether the model learns to answer them. The full config is at [`config/OLMo-3-1025-7B-pretrain-1.yaml`](config/OLMo-3-1025-7B-pretrain-1.yaml).
+The following example inserts ARC-Challenge benchmark questions into OLMo-3 7B midtraining data and evaluates how much the model overfits on them. The full config is at [`config/OLMo-3-1025-7B-midtrain.yaml`](config/OLMo-3-1025-7B-midtrain.yaml).
 
 ### The config file
 
@@ -78,15 +78,15 @@ The following example inserts ARC-Challenge benchmark questions into OLMo-3 7B t
 experiment: example-experiments
 
 wandb:
-    name: olmo-3-pretrain
+    name: olmo-3-midtrain
     entity: your-entity
 
 framework: olmo_core
 
 model:
-  config: ${OLMO_CORE_REPO}/src/scripts/official/OLMo3/OLMo-3-1025-7B-pretrain-1.py
-  checkpoint_url: "https://olmo-checkpoints.org/ai2-llm/Olmo-3-1025-7B/stage1/"
-  checkpoint_step: 1000000
+  config: ${OLMO_CORE_REPO}/src/scripts/official/OLMo3/OLMo-3-1025-7B-midtrain.py
+  checkpoint_url: "https://olmo-checkpoints.org/ai2-llm/Olmo-3-1025-7B/stage2/"
+  checkpoint_step: 10000
 
 training:
   num_steps: 100
@@ -121,13 +121,13 @@ Texts to insert are stored as JSONL — one JSON object per line with a `"text"`
 ### Run the experiment
 
 ```bash
-pretrain-experiments config/OLMo-3-1025-7B-pretrain-1.yaml
+pretrain-experiments config/OLMo-3-1025-7B-midtrain.yaml
 ```
 
 This will download the checkpoint, insert the texts into the training data, train for 100 steps, and evaluate the result. Any config parameter can be overridden from the command line:
 
 ```bash
-pretrain-experiments config/OLMo-3-1025-7B-pretrain-1.yaml --training.num_steps 50
+pretrain-experiments config/OLMo-3-1025-7B-midtrain.yaml --training.num_steps 50
 ```
 
 See the [`config/`](config/) directory for more examples, including configs that reproduce the [paper experiments](config/train-once-answer-all/). For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
