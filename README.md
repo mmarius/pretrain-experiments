@@ -14,9 +14,7 @@
   <img src="resources/Pretrain-Experiments-Illustration.png" alt="Pretrain Experiments Overview">
 </p>
 
-**pretrain-experiments** lets you take a model checkpoint, continue training for *n* steps with precise modifications to the training data, and automatically evaluate the result. It orchestrates the full pipeline — data insertion, training, checkpointing, and evaluation — so you can focus on experiment design rather than infrastructure.
-
-Built to support the experiments in [*Train Once, Answer All*](https://arxiv.org/abs/2509.23383) (ICLR 2026).
+Take a language model checkpoint, continue training with targeted data interventions, and evaluate the result — all from a single YAML config. Built to support the experiments in [*Train Once, Answer All*](https://arxiv.org/abs/2509.23383) (ICLR 2026).
 
 ## Features
 
@@ -72,75 +70,67 @@ Set `OLMO_CORE_REPO` to the clone path, or place it alongside the `pretrain-expe
 
 ## Getting Started
 
-Experiments are defined in YAML config files. Run one with:
+The following example inserts ARC-Challenge benchmark questions into OLMo-3 7B training data and evaluates whether the model learns to answer them. The full config is at [`config/OLMo-3-1025-7B-pretrain-1.yaml`](config/OLMo-3-1025-7B-pretrain-1.yaml).
 
-```bash
-pretrain-experiments config/your-config.yaml
-```
-
-Override any config parameter from the command line using dot notation:
-
-```bash
-pretrain-experiments config/your-config.yaml --training.num_steps 100
-```
-
-The [`config/`](config/) directory contains ready-to-use examples:
-
-- [`OLMo-3-1025-7B-pretrain-1.yaml`](config/OLMo-3-1025-7B-pretrain-1.yaml) — continue pretraining OLMo-3 7B with text insertions and evaluation (OLMo-Core backend)
-- [`train-once-answer-all/`](config/train-once-answer-all/) — configs that reproduce the paper experiments (OLMo-2 backend)
-
-## Configuration
-
-A minimal configuration specifies a model checkpoint, training parameters, and optional data interventions and evaluations:
+### The config file
 
 ```yaml
-experiment: my-experiment
+experiment: example-experiments
 
 wandb:
-  name: experiment-name
-  entity: your-entity
+    name: olmo-3-pretrain
+    entity: your-entity
 
-framework:
-  type: olmo                                      # olmo (OLMo-2) or olmo_core (OLMo-3)
-  repository_path: ${PRETRAIN_EXPERIMENTS}/../OLMo
+framework: olmo_core
 
 model:
-  config: path/to/model-config.yaml
-  checkpoint_base_url: https://olmo-checkpoints.org/...
-  checkpoint_step: 100000
+  config: ${OLMO_CORE_REPO}/src/scripts/official/OLMo3/OLMo-3-1025-7B-pretrain-1.py
+  checkpoint_url: "https://olmo-checkpoints.org/ai2-llm/Olmo-3-1025-7B/stage1/"
+  checkpoint_step: 1000000
 
 training:
-  num_steps: 1000
+  num_steps: 100
 
 experiments:
-  seed: 0
   experiments:
-    - name: my-texts
-      type: add-texts-from-file                   # or add-tokens-from-file
-      file: path/to/texts.jsonl
+    - type: add-texts-from-file
+      file: ${PRETRAIN_EXPERIMENTS}/resources/.../olmes_arc_challenge_test.jsonl
+      repetitions: 4                              # each text is inserted 4 times
 
 evaluation:
-  eval_on_load: true
+  eval_on_load: true                              # evaluate before and after training
   evaluations:
-    - name: my-eval
-      script: benchmark.py
+    - script: olmes.py
       args:
-        task-file: path/to/tasks.jsonl
+        task: arc_challenge::olmes
+        split: test
 ```
 
-Environment variables are substituted via `${VAR_NAME}` syntax. See the [`config/`](config/) directory for complete examples.
+The config specifies a **model checkpoint** to continue training from, **data interventions** to apply, and **evaluations** to run. Environment variables (`${...}`) are substituted at runtime.
 
-### Key Configuration Sections
+### The data file
 
-| Section | Description |
-|---------|-------------|
-| `experiment` | Experiment name, used for organizing output folders |
-| `wandb` | Weights & Biases tracking (`name`, `entity`) |
-| `framework` | Training backend: `olmo` (OLMo-2) or `olmo_core` (OLMo-3) |
-| `model` | Starting checkpoint (`config`, `checkpoint_base_url`, `checkpoint_step`) |
-| `training` | Training parameters (`num_steps`, optional `checkpoint_interval`) |
-| `experiments` | Data interventions to apply during training |
-| `evaluation` | Evaluation scripts to run on checkpoints |
+Texts to insert are stored as JSONL — one JSON object per line with a `"text"` field:
+
+```json
+{"text": "Question: An astronomer observes that a planet rotates faster after a meteorite impact. Which is the most likely effect of this increase in rotation?\nAnswer: Planetary days will become shorter."}
+{"text": "Question: The end result in the process of photosynthesis is the production of sugar and oxygen. Which step signals the beginning of photosynthesis?\nAnswer: Chlorophyll in the leaf captures light energy."}
+...
+```
+
+### Run the experiment
+
+```bash
+pretrain-experiments config/OLMo-3-1025-7B-pretrain-1.yaml
+```
+
+This will download the checkpoint, insert the texts into the training data, train for 100 steps, and evaluate the result. Any config parameter can be overridden from the command line:
+
+```bash
+pretrain-experiments config/OLMo-3-1025-7B-pretrain-1.yaml --training.num_steps 50
+```
+
+See the [`config/`](config/) directory for more examples, including configs that reproduce the [paper experiments](config/train-once-answer-all/). For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
 
 ## Contributing
 
