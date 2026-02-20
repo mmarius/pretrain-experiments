@@ -18,13 +18,11 @@ Take a language model checkpoint, continue training with targeted data intervent
 
 ## Features
 
-| | |
-|---|---|
-| **Data interventions** | Inject texts or tokens at precise positions in the training data |
-| **Multiple backends** | Supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to other frameworks |
-| **Integrated evaluation** | Run benchmarks and custom evaluation scripts on every checkpoint |
-| **Experiment tracking** | Automatic Weights & Biases logging |
-| **Declarative configs** | YAML with environment variable substitution and CLI overrides |
+🧬 Inject texts or tokens at precise positions in the training data
+🔌 Supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to other frameworks
+📊 Run benchmarks and custom evaluation scripts on every checkpoint
+📋 Automatic Weights & Biases logging
+⚙️ YAML configs with environment variable substitution and CLI overrides
 
 ## Installation
 
