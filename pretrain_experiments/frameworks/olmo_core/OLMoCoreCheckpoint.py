@@ -190,41 +190,50 @@ class OLMoCoreCheckpoint(Checkpoint):
 
     def get_batch_size(self) -> int:
         """
-        Get batch size from OLMo-core config.
+        Get batch size (in sequences) from OLMo-core config.
+
+        OLMo-core's global_batch_size is in tokens, but the Checkpoint interface
+        returns sequences per batch (matching OLMo-2's convention). This ensures
+        that ``batch_size * sequence_length`` gives tokens per step everywhere.
 
         For checkpoints: Reads from config.json
         For from-scratch: Parses GLOBAL_BATCH_SIZE from Python config
 
         Returns:
-            Global training batch size.
+            Number of sequences per global batch.
 
         Raises:
             ValueError: If batch_size cannot be determined.
         """
+        global_batch_size_tokens = None
+
         # Try checkpoint config.json first
         config = self._get_config()
-
-        # OLMo-core stores this in data_loader.global_batch_size
         if config:
             if "data_loader" in config and "global_batch_size" in config["data_loader"]:
-                return config["data_loader"]["global_batch_size"]
+                global_batch_size_tokens = config["data_loader"]["global_batch_size"]
 
         # Try Python config file
-        constants = self._get_python_config_constants()
-        if "GLOBAL_BATCH_SIZE" in constants:
-            return constants["GLOBAL_BATCH_SIZE"]
+        if global_batch_size_tokens is None:
+            constants = self._get_python_config_constants()
+            if "GLOBAL_BATCH_SIZE" in constants:
+                global_batch_size_tokens = constants["GLOBAL_BATCH_SIZE"]
 
-        # No defaults - raise exception
-        if self.path is not None:
-            raise ValueError(
-                f"Could not determine batch_size from checkpoint config.json at '{self.path}'. "
-                f"Expected 'data_loader.global_batch_size'."
-            )
-        else:
-            raise ValueError(
-                f"Could not determine batch_size from Python config at '{self._config_path}'. "
-                f"Expected 'GLOBAL_BATCH_SIZE' constant."
-            )
+        if global_batch_size_tokens is None:
+            if self.path is not None:
+                raise ValueError(
+                    f"Could not determine batch_size from checkpoint config.json at '{self.path}'. "
+                    f"Expected 'data_loader.global_batch_size'."
+                )
+            else:
+                raise ValueError(
+                    f"Could not determine batch_size from Python config at '{self._config_path}'. "
+                    f"Expected 'GLOBAL_BATCH_SIZE' constant."
+                )
+
+        # Convert from tokens to sequences
+        sequence_length = self.get_sequence_length()
+        return global_batch_size_tokens // sequence_length
 
     def to_hf(self, output_dir: Union[str, Path]) -> str:
         """

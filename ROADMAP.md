@@ -14,6 +14,10 @@
 
 # TODO's
 
+- check again what happens if sequence is too long
+
+- throw error if adding too many tokens
+
 - standardize evals (release evals?)
 
 - when re-starting with long training stuff, will always restart from initial checkpoint again

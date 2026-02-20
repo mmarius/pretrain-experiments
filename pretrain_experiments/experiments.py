@@ -304,12 +304,26 @@ class InsertionBuilder:
             insertion_specs, start_idx, end_idx, sequence_len, IntervalSet()
         )
 
-        # Print total summary
+        # Sanity checks and summary
         if insertion_specs:
+            # Check for insertions that cross sequence boundaries
+            num_boundary_crossings = 0
+            for global_pos, tokens in insert_dict.items():
+                local_pos = global_pos % sequence_len
+                if local_pos + len(tokens) > sequence_len:
+                    num_boundary_crossings += 1
+
+            if num_boundary_crossings > 0:
+                logger.warning("=" * 60)
+                logger.warning(f"WARNING: {num_boundary_crossings} insertion(s) cross sequence boundaries!")
+                logger.warning("These insertions will be split across sequences during training.")
+                logger.warning("=" * 60)
+
+            # Report fraction of modified tokens relative to training window
             fraction = 100 * total_tokens / training_tokens if training_tokens > 0 else 0
             logger.info("")
             logger.info("-" * 60)
-            logger.info(f"Total: {total_tokens:,} tokens ({fraction:.6f}% of training data)")
+            logger.info(f"Total: {total_tokens:,} tokens ({fraction:.6f}% of {training_tokens:,} tokens in {num_steps} training steps)")
             logger.info("=" * 60)
 
         return insert_dict
