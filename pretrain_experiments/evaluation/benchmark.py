@@ -6,12 +6,15 @@
 
 from pretrain_experiments.evaluation.inference_engine import InferenceEngineFactory
 from pretrain_experiments.script_utils import load_jsonl
+from pretrain_experiments.logging_config import get_logger
 
 import numpy as np
 from tqdm import tqdm
 
 import numpy as np
 from transformers import AutoTokenizer
+
+logger = get_logger(__name__)
 
 
 def longest_common_prefix_length(sequences):
@@ -103,10 +106,10 @@ if __name__ == "__main__":
             label = np.argmax([q['label'] == q['idx'] for q in doc_queries])
             acc.append(pred == label)
         except Exception as e:
-            print(f"Error processing document {i_doc}: {e}")
+            logger.error(f"Error processing document {i_doc}: {e}")
             acc.append(False)
     
-    print(f'Accuracy: {np.mean(acc) * 100:.2f}%')
+    logger.info(f'Accuracy: {np.mean(acc) * 100:.2f}%')
 
     # save the results to a yaml file if requested
     if args.results_yaml:
@@ -121,4 +124,4 @@ if __name__ == "__main__":
         }
         with open(args.results_yaml, 'w') as f:
             yaml.dump(results, f)
-        print(f"Results saved to {args.results_yaml}")
+        logger.info(f"Results saved to {args.results_yaml}")

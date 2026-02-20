@@ -2,6 +2,10 @@ import h5py
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 class InsertionMapReader:
     """
@@ -56,7 +60,7 @@ class InsertionMapReader:
         # Load indices immediately
         self._load_indices()
 
-        print(f"InsertionMapReader initialized with {len(self._keys_array)} indices")
+        logger.info(f"InsertionMapReader initialized with {len(self._keys_array)} indices")
 
     def _ensure_file_open(self):
         """Lazy file opening with optimal cache settings"""
@@ -243,7 +247,7 @@ class InsertionMapWriter:
                           (position, [token_ids]) tuples
             mode: 'w' for overwrite, 'a' for append (default 'w')
         """
-        print(f"Writing {len(insertion_map)} entries to {self.hdf5_path} (mode: {mode})")
+        logger.info(f"Writing {len(insertion_map)} entries to {self.hdf5_path} (mode: {mode})")
         self._optimize_for_lustre()
 
         with h5py.File(self.hdf5_path, mode) as f:
@@ -252,7 +256,7 @@ class InsertionMapWriter:
             else:
                 self._append_to_file(f, insertion_map)
 
-        print(f"Successfully wrote data to {self.hdf5_path}")
+        logger.info(f"Successfully wrote data to {self.hdf5_path}")
 
     def append_dict(self, insertion_map: Dict[int, List[Tuple[int, List[int]]]]) -> None:
         """
@@ -261,7 +265,7 @@ class InsertionMapWriter:
         Args:
             insertion_map: New insertion data to append
         """
-        print(f"Appending {len(insertion_map)} entries to {self.hdf5_path}")
+        logger.info(f"Appending {len(insertion_map)} entries to {self.hdf5_path}")
 
         import os
         if not os.path.exists(self.hdf5_path):
@@ -271,7 +275,7 @@ class InsertionMapWriter:
         with h5py.File(self.hdf5_path, 'a') as f:
             self._append_to_file(f, insertion_map)
 
-        print(f"Successfully appended data to {self.hdf5_path}")
+        logger.info(f"Successfully appended data to {self.hdf5_path}")
 
     def save_optimized(self, output_path: str) -> None:
         """
@@ -287,7 +291,7 @@ class InsertionMapWriter:
         Args:
             output_path: Path for the optimized HDF5 file
         """
-        print(f"Creating optimized file {output_path} from {self.hdf5_path}")
+        logger.info(f"Creating optimized file {output_path} from {self.hdf5_path}")
 
         # Read all data from simple format
         with h5py.File(self.hdf5_path, 'r') as f:
@@ -332,8 +336,8 @@ class InsertionMapWriter:
             f.create_dataset('token_offsets', data=np.array(token_offsets, dtype=np.int64))
             f.create_dataset('tokens', data=np.array(all_tokens, dtype=np.int32))
 
-        print(f"Successfully created optimized file with {len(keys)} indices, "
-              f"{len(all_positions)} tuples, {len(all_tokens)} tokens")
+        logger.info(f"Successfully created optimized file with {len(keys)} indices, "
+                     f"{len(all_positions)} tuples, {len(all_tokens)} tokens")
 
     def _write_fresh_file(self, f, insertion_map):
         """Write data to a fresh file in simple format"""
@@ -405,7 +409,7 @@ class InsertionMapWriter:
         Returns:
             Dictionary mapping indices to lists of (position, [token_ids]) tuples
         """
-        print(f"Reading entire insertion map from {self.hdf5_path}")
+        logger.info(f"Reading entire insertion map from {self.hdf5_path}")
         result = {}
 
         with h5py.File(self.hdf5_path, 'r') as f:
@@ -430,7 +434,7 @@ class InsertionMapWriter:
 
                     result[int(key)] = insertions
 
-        print(f"Successfully read {len(result)} entries")
+        logger.info(f"Successfully read {len(result)} entries")
         return result
 
     def read_index(self, index: int) -> Optional[List[Tuple[int, List[int]]]]:

@@ -19,6 +19,10 @@ import re
 from typing import Dict, Any, Optional, List, Union
 from pathlib import Path
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def load_env_file(env_file: str) -> None:
     """Load environment variables from a file."""
@@ -41,7 +45,7 @@ def substitute_env_vars(content: str) -> str:
         var_name = match.group(1)
         env_value = os.environ.get(var_name)
         if env_value is None:
-            print(f"Warning: Environment variable '{var_name}' not found, keeping placeholder")
+            logger.warning(f"Environment variable '{var_name}' not found, keeping placeholder")
             return match.group(0)
         return env_value
     
@@ -77,7 +81,7 @@ def auto_load_env_files(config_path: str, explicit_env_file: Optional[str] = Non
     # Load the first available auto-detected env file
     for auto_env_file in auto_env_files:
         if auto_env_file.exists():
-            print(f"Auto-loading environment file: {auto_env_file}")
+            logger.info(f"Auto-loading environment file: {auto_env_file}")
             load_env_file(str(auto_env_file))
             break
 
@@ -343,19 +347,19 @@ def parse_config_with_overrides(description: Optional[str] = None) -> FlexibleCo
     # Show help if requested
     if args.help:
         parser.print_help()
-        print("\nAdditionally, you can override any config parameter using dot notation:")
-        print("  --model.path 'new/path'       Override model.path in config")
-        print("  --training.lr 0.001           Override training.lr in config")
-        print("  --data.batch_size 32          Override data.batch_size in config")
-        print("  --experiments.0.repetitions 0.2  Override repetitions in first experiment")
+        logger.info("\nAdditionally, you can override any config parameter using dot notation:")
+        logger.info("  --model.path 'new/path'       Override model.path in config")
+        logger.info("  --training.lr 0.001           Override training.lr in config")
+        logger.info("  --data.batch_size 32          Override data.batch_size in config")
+        logger.info("  --experiments.0.repetitions 0.2  Override repetitions in first experiment")
         exit(0)
     
     # Load base configuration from YAML file
     try:
         config = load_yaml_config(args.config, args.env)
-        print(f"Loaded configuration from: {args.config}")
+        logger.info(f"Loaded configuration from: {args.config}")
     except Exception as e:
-        print(f"Error loading configuration file '{args.config}': {e}")
+        logger.error(f"Error loading configuration file '{args.config}': {e}")
         exit(1)
     
     # Apply overrides directly to the loaded config
@@ -369,22 +373,22 @@ def parse_config_with_overrides(description: Optional[str] = None) -> FlexibleCo
                 value = convert_value(unknown[i + 1])
                 try:
                     set_nested_value_direct(config, key, value)
-                    print(f"Override: {key} = {value}")
+                    logger.info(f"Override: {key} = {value}")
                 except (ValueError, IndexError) as e:
-                    print(f"Error setting {key}: {e}")
+                    logger.error(f"Error setting {key}: {e}")
                 i += 2
             else:
                 # Flag parameter (boolean True)
                 try:
                     set_nested_value_direct(config, key, True)
-                    print(f"Override: {key} = True")
+                    logger.info(f"Override: {key} = True")
                 except (ValueError, IndexError) as e:
-                    print(f"Error setting {key}: {e}")
+                    logger.error(f"Error setting {key}: {e}")
                 i += 1
         else:
-            print(f"Warning: Ignoring positional argument: {unknown[i]}")
+            logger.warning(f"Ignoring positional argument: {unknown[i]}")
             i += 1
-    
+
     # Return as FlexibleConfig object with dot notation access
     return FlexibleConfig(config)
 
@@ -433,9 +437,9 @@ def parse_flexible_config(parser: argparse.ArgumentParser, override_known: bool 
         try:
             yaml_config = load_yaml_config(args.config, args.env)
             config.update(yaml_config)
-            print(f"Loaded configuration from: {args.config}")
+            logger.info(f"Loaded configuration from: {args.config}")
         except Exception as e:
-            print(f"Error loading configuration file '{args.config}': {e}")
+            logger.error(f"Error loading configuration file '{args.config}': {e}")
             exit(1)
     
     # Apply dot notation overrides directly to config from unknown arguments
@@ -450,20 +454,20 @@ def parse_flexible_config(parser: argparse.ArgumentParser, override_known: bool 
                     value = convert_value(unknown[i + 1])
                     try:
                         set_nested_value_direct(config, key, value)
-                        print(f"Override: {key} = {value}")
+                        logger.info(f"Override: {key} = {value}")
                     except (ValueError, IndexError) as e:
-                        print(f"Error setting {key}: {e}")
+                        logger.error(f"Error setting {key}: {e}")
                     i += 2
                 else:
                     # Flag parameter (boolean True)
                     try:
                         set_nested_value_direct(config, key, True)
-                        print(f"Override: {key} = True")
+                        logger.info(f"Override: {key} = True")
                     except (ValueError, IndexError) as e:
-                        print(f"Error setting {key}: {e}")
+                        logger.error(f"Error setting {key}: {e}")
                     i += 1
             else:
-                print(f"Warning: Ignoring positional argument: {unknown[i]}")
+                logger.warning(f"Ignoring positional argument: {unknown[i]}")
                 i += 1
     
     return args, config

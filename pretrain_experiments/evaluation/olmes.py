@@ -1,6 +1,7 @@
 # evaluate a model using olmes (https://github.com/allenai/olmes)
 
 from pretrain_experiments.script_utils import find_python_executable_or_raise
+from pretrain_experiments.logging_config import get_logger
 from pathlib import Path
 import subprocess
 import sys
@@ -9,6 +10,8 @@ import json
 import yaml
 import glob
 import re
+
+logger = get_logger(__name__)
 
 if __name__ == "__main__":
     import argparse
@@ -35,7 +38,7 @@ if __name__ == "__main__":
         olmes_bin_dir = str(Path(olmes_executable_env).parent)
         env = os.environ.copy()
         env["PATH"] = olmes_bin_dir + ":" + env["PATH"]
-        print(f"Using OLMES_EXECUTABLE: {olmes_cmd}")
+        logger.info(f"Using OLMES_EXECUTABLE: {olmes_cmd}")
     elif args.environment is not None:
         python_executable = find_python_executable_or_raise(args.environment)
         # modify PATH so that subprocesses spawned by olmes use the correct python
@@ -64,16 +67,16 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
     cmd_args.append(f"--output-dir={output_dir}")
 
-    print(f"Running OLMES evaluation with command: {' '.join(cmd_args)}")
-    print(f"Output directory: {output_dir}")
+    logger.info(f"Running OLMES evaluation with command: {' '.join(cmd_args)}")
+    logger.info(f"Output directory: {output_dir}")
     process = subprocess.Popen(cmd_args, env=env)
     process.wait()
 
     if process.returncode != 0:
-        print(f"ERROR: OLMES failed with return code {process.returncode}")
+        logger.error(f"OLMES failed with return code {process.returncode}")
         sys.exit(process.returncode)
 
-    print("OLMES execution completed")
+    logger.info("OLMES execution completed")
 
     # process results from output_dir
     # metrics files have pattern: task-###-{taskname}-metrics.json
@@ -103,12 +106,12 @@ if __name__ == "__main__":
                     results[key] = metric_value
 
         except Exception as e:
-            print(f"WARNING: Failed to parse metrics file {metrics_file}: {e}")
+            logger.warning(f"Failed to parse metrics file {metrics_file}: {e}")
 
-    print(f"Processed {len(metrics_files)} metrics files, extracted {len(results)} metrics")
+    logger.info(f"Processed {len(metrics_files)} metrics files, extracted {len(results)} metrics")
 
     # write results to yaml file
     if args.results_yaml:
         with open(args.results_yaml, "w") as f:
             yaml.dump(results, f)
-        print(f"Results written to {args.results_yaml}")
+        logger.info(f"Results written to {args.results_yaml}")

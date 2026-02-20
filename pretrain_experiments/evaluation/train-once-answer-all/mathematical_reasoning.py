@@ -5,9 +5,12 @@
 
 from pretrain_experiments.evaluation.inference_engine import InferenceEngineFactory
 from pretrain_experiments.script_utils import save_jsonl
+from pretrain_experiments.logging_config import get_logger
 
 import datasets
 import numpy as np
+
+logger = get_logger(__name__)
 
 if __name__ == "__main__":
     import argparse
@@ -22,12 +25,12 @@ if __name__ == "__main__":
                         help="If set, save prompts and responses to this file in jsonl format. ")
     args, unknown_args = parser.parse_known_args()
     if unknown_args:
-        print(f"Warning: Unknown arguments ignored: {unknown_args}")
+        logger.warning(f"Unknown arguments ignored: {unknown_args}")
 
     # load the dataset from HuggingFace
     ds = datasets.load_dataset("sbordt/toaa_mathematical_reasoning", split="train")
     ds = ds.filter(lambda x: x["ops"] == args.ops)
-    print(f"Loaded {len(ds)} problems with ops={args.ops}")
+    logger.info(f"Loaded {len(ds)} problems with ops={args.ops}")
 
     queries = list(ds)
     prompts = [q["prompt"] for q in queries]
@@ -69,15 +72,15 @@ if __name__ == "__main__":
                 parsed_answer = int(answer)
                 accs.append(parsed_answer == correct_answer)
                 if not accs[-1]:
-                    print(f"Wrong answer: {response[:200]}, expected: {correct_answer}")
+                    logger.info(f"Wrong answer: {response[:200]}, expected: {correct_answer}")
             except Exception as e:
-                print(f"Error parsing response: {response}, error: {e}")
+                logger.warning(f"Error parsing response: {response}, error: {e}")
                 accs.append(False)
         else:
-            print(f"Error parsing response: 'Answer: ' not found in response: {response}")
+            logger.warning(f"Error parsing response: 'Answer: ' not found in response: {response}")
             accs.append(False)
 
-    print(f"Accuracy: {np.mean(accs) * 100:.2f}%")
+    logger.info(f"Accuracy: {np.mean(accs) * 100:.2f}%")
 
     # save the results to a yaml file if requested
     if args.results_yaml:
@@ -87,7 +90,7 @@ if __name__ == "__main__":
         }
         with open(args.results_yaml, 'w') as f:
             yaml.dump(results, f)
-        print(f"Results saved to {args.results_yaml}")
+        logger.info(f"Results saved to {args.results_yaml}")
 
     # save the prompts and responses to a jsonl file if requested
     if args.detailed_results_jsonl:

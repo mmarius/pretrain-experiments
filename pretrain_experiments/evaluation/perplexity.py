@@ -9,9 +9,12 @@
 #
 from pretrain_experiments.script_utils import load_jsonl, save_jsonl
 from pretrain_experiments.evaluation.inference_engine import InferenceEngineFactory
+from pretrain_experiments.logging_config import get_logger
 
 import numpy as np
 from typing import List
+
+logger = get_logger(__name__)
 
 
 def eval_perplexity(model :str, prompts :List[str | List[int]], responses_file :str | None = None, print_responses :bool = False, revision :str | None = None):
@@ -23,7 +26,7 @@ def eval_perplexity(model :str, prompts :List[str | List[int]], responses_file :
                 prompts[idx] = prompts[idx][:4095]
                 did_truncate = True
     if did_truncate:
-        print(f"Warning: Some prompts were truncated to 4095 tokens. This is necessary with our current vllm implementation.")
+        logger.warning("Some prompts were truncated to 4095 tokens. This is necessary with our current vllm implementation.")
 
     engine = InferenceEngineFactory.create_from_config(model, revision=revision, max_num_batched_tokens=8192 // 2 if did_truncate else None)
 
@@ -46,7 +49,7 @@ def eval_perplexity(model :str, prompts :List[str | List[int]], responses_file :
     unique_count = len(unique_prompts)
         
     if unique_count < original_count:
-        print(f"Deduplicated {original_count} prompts to {unique_count} unique prompts")
+        logger.info(f"Deduplicated {original_count} prompts to {unique_count} unique prompts")
 
     # get logprobs from vllm
     result = engine.get_logprobs(unique_prompts)
@@ -54,7 +57,7 @@ def eval_perplexity(model :str, prompts :List[str | List[int]], responses_file :
     # save all logprobs if requested
     if responses_file:
         save_jsonl(result, responses_file)
-        print(f"Model responses saved to {responses_file}")
+        logger.info(f"Model responses saved to {responses_file}")
 
     # compute the likelihood and perplexity
     all_logprobs = []
@@ -65,8 +68,8 @@ def eval_perplexity(model :str, prompts :List[str | List[int]], responses_file :
     cross_entropy_loss = -likelihood / len(all_logprobs)
     perplexity = np.exp(cross_entropy_loss)
 
-    print(f"Cross-entropy loss: {cross_entropy_loss:.4f}")
-    print(f"Perplexity: {perplexity:.4f}")
+    logger.info(f"Cross-entropy loss: {cross_entropy_loss:.4f}")
+    logger.info(f"Perplexity: {perplexity:.4f}")
 
     result = {
         'cross_entropy_loss': float(cross_entropy_loss),
@@ -90,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--key", type=str, default="prompt")
     args, unknown_args = parser.parse_known_args()
     if unknown_args:
-        print(f"Warning: Unknown arguments ignored: {unknown_args}")
+        logger.warning(f"Unknown arguments ignored: {unknown_args}")
 
     # load the inputs and targets
     prompts = load_jsonl(args.task_file)
@@ -104,7 +107,7 @@ if __name__ == "__main__":
         import yaml
         with open(args.results_yaml, 'w') as f:
             yaml.dump(results, f)
-        print(f"Results saved to {args.results_yaml}")
+        logger.info(f"Results saved to {args.results_yaml}")
 
 
 

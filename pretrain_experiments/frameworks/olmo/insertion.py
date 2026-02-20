@@ -32,6 +32,9 @@ import pickle
 import os
 
 from pretrain_experiments.token_insertion import convert_insert_dict_to_index_map
+from pretrain_experiments.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def create_olmo_insert_dict(insert_dict: Union[Dict[int, str], Dict[int, List[int]]],
@@ -88,7 +91,7 @@ def create_olmo_insert_dict(insert_dict: Union[Dict[int, str], Dict[int, List[in
         global_indices = np.memmap(global_indices_path, mode="r+", dtype=np.uint32)
     else:
         # we need to build the train dataloader to get the global indices
-        print("No global indices file provided, building the OLMo dataloader to get the global indices.")
+        logger.info("No global indices file provided, building the OLMo dataloader to get the global indices.")
         cfg.device_train_batch_size = 2 # if we do not set this we get an assertion error in build_train_dataloader
         cfg.save_overwrite = True # if we do not set this, we get an error if the folder already exists. might want to change this in the future.
         dataloader = build_train_dataloader(cfg)
@@ -146,4 +149,4 @@ if __name__ == "__main__":
     olmo_config_path = "../../configs/official-0425/OLMo2-1B-stage1.yaml"
     insert_dict = {5: "Das scheint ja zu funktionieren!", 4096: "Ja, wirklich!", 2*4096-2: "Der boy hier wird wohl gesplittet werden!"}
     memmap_insert_dict = create_olmo_insert_dict(insert_dict, olmo_config_path, global_indices_path="global_indices.npy")
-    print(memmap_insert_dict)
+    logger.info(memmap_insert_dict)

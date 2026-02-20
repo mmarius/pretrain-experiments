@@ -4,6 +4,10 @@ from tqdm import tqdm
 from requests.exceptions import RequestException, ChunkedEncodingError, ConnectionError, Timeout
 import time
 
+from ...logging_config import get_logger
+
+logger = get_logger(__name__)
+
 def check_file_exists_on_server(url, timeout=10):
     """Check if a file exists on the server using HEAD request."""
     try:
@@ -53,7 +57,7 @@ def download_with_resume(url, filepath, chunk_size=1024*1024, timeout=30, max_re
         resume_pos = os.path.getsize(filepath)
         headers['Range'] = f'bytes={resume_pos}-'
         mode = 'ab'
-        print(f"Resuming download from byte {resume_pos}")
+        logger.info(f"Resuming download from byte {resume_pos}")
     
     response = None
     for attempt in range(max_retries_per_chunk):
@@ -64,11 +68,11 @@ def download_with_resume(url, filepath, chunk_size=1024*1024, timeout=30, max_re
             elif response.status_code == 416:  # Range not satisfiable - file might be complete
                 return True
             else:
-                print(f"Unexpected status code: {response.status_code}")
+                logger.warning(f"Unexpected status code: {response.status_code}")
                 if attempt < max_retries_per_chunk - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
         except (Timeout, ConnectionError) as e:
-            print(f"Connection error (attempt {attempt + 1}): {e}")
+            logger.warning(f"Connection error (attempt {attempt + 1}): {e}")
             if attempt < max_retries_per_chunk - 1:
                 time.sleep(2 ** attempt)
             else:
@@ -113,7 +117,7 @@ def download_file_chunked(url, filepath, total_size, chunk_size=50*1024*1024, ma
     part_size = 500 * 1024 * 1024  # 500MB parts
     num_parts = (total_size + part_size - 1) // part_size
     
-    print(f"Downloading {num_parts} parts of ~{part_size/(1024*1024):.0f}MB each")
+    logger.info(f"Downloading {num_parts} parts of ~{part_size/(1024*1024):.0f}MB each")
     
     for i in range(num_parts):
         start = i * part_size
@@ -125,7 +129,7 @@ def download_file_chunked(url, filepath, total_size, chunk_size=50*1024*1024, ma
             part_size_on_disk = os.path.getsize(part_filepath)
             expected_part_size = end - start + 1
             if part_size_on_disk == expected_part_size:
-                print(f"Part {i+1}/{num_parts} already complete")
+                logger.info(f"Part {i+1}/{num_parts} already complete")
                 continue
         
         headers = {'Range': f'bytes={start}-{end}'}
@@ -133,7 +137,7 @@ def download_file_chunked(url, filepath, total_size, chunk_size=50*1024*1024, ma
         success = False
         for attempt in range(max_retries):
             try:
-                print(f"Downloading part {i+1}/{num_parts} (bytes {start}-{end})")
+                logger.info(f"Downloading part {i+1}/{num_parts} (bytes {start}-{end})")
                 response = requests.get(url, headers=headers, stream=True, timeout=60)
                 
                 if response.status_code in [200, 206]:
@@ -144,19 +148,19 @@ def download_file_chunked(url, filepath, total_size, chunk_size=50*1024*1024, ma
                     success = True
                     break
                 else:
-                    print(f"Failed with status {response.status_code}")
+                    logger.warning(f"Failed with status {response.status_code}")
                     
             except (RequestException, ConnectionError, ChunkedEncodingError) as e:
-                print(f"Error downloading part {i+1} (attempt {attempt+1}): {e}")
+                logger.warning(f"Error downloading part {i+1} (attempt {attempt+1}): {e}")
                 if attempt < max_retries - 1:
                     time.sleep(5 * (attempt + 1))  # Increasing delay
         
         if not success:
-            print(f"Failed to download part {i+1} after {max_retries} attempts")
+            logger.error(f"Failed to download part {i+1} after {max_retries} attempts")
             return False
     
     # Combine parts
-    print("Combining parts...")
+    logger.info("Combining parts...")
     with open(filepath, 'wb') as outfile:
         for part_filepath in temp_parts:
             with open(part_filepath, 'rb') as infile:
@@ -167,7 +171,7 @@ def download_file_chunked(url, filepath, total_size, chunk_size=50*1024*1024, ma
                     outfile.write(chunk)
             os.remove(part_filepath)  # Clean up part file
     
-    print("Download complete!")
+    logger.info("Download complete!")
     return True
 
 def download_file(url, directory, filename, chunk_size=1024*1024, max_retries=3, use_chunked_for_large_files=True):
@@ -177,9 +181,9 @@ def download_file(url, directory, filename, chunk_size=1024*1024, max_retries=3,
     filepath = os.path.join(directory, filename)
     
     # First check if file exists on server
-    print(f"Checking if {filename} exists on server...")
+    logger.info(f"Checking if {filename} exists on server...")
     if not check_file_exists_on_server(url):
-        print(f"File {filename} does not exist on server (404). Skipping.")
+        logger.info(f"File {filename} does not exist on server (404). Skipping.")
         return
     
     # Get remote file info
@@ -187,22 +191,22 @@ def download_file(url, directory, filename, chunk_size=1024*1024, max_retries=3,
     
     # Check if file already exists with correct size
     if file_exists_with_correct_size(filepath, remote_size):
-        print(f"File {filename} already exists with correct size ({remote_size:,} bytes). Skipping download.")
+        logger.info(f"File {filename} already exists with correct size ({remote_size:,} bytes). Skipping download.")
         return
     
     # Determine download strategy based on file size
     size_gb = remote_size / (1024**3) if remote_size > 0 else 0
     
     if use_chunked_for_large_files and remote_size > 1024**3 and accepts_ranges:  # > 1GB and supports ranges
-        print(f"File size: {size_gb:.2f}GB - using chunked download with resume support")
+        logger.info(f"File size: {size_gb:.2f}GB - using chunked download with resume support")
         success = download_file_chunked(url, filepath, remote_size, chunk_size)
     else:
         # Try regular download with resume capability
         for attempt in range(max_retries):
             try:
-                print(f"Downloading {filename}... (attempt {attempt + 1}/{max_retries})")
+                logger.info(f"Downloading {filename}... (attempt {attempt + 1}/{max_retries})")
                 if remote_size > 0:
-                    print(f"File size: {size_gb:.2f}GB")
+                    logger.info(f"File size: {size_gb:.2f}GB")
                 
                 if accepts_ranges and remote_size > 100*1024*1024:  # > 100MB
                     # Use resume-capable download
@@ -222,28 +226,28 @@ def download_file(url, directory, filename, chunk_size=1024*1024, max_retries=3,
                         success = True
                     else:
                         success = False
-                        print(f"Failed with status code: {response.status_code}")
+                        logger.warning(f"Failed with status code: {response.status_code}")
                 
                 if success:
                     # Verify downloaded size
                     actual_size = os.path.getsize(filepath)
                     if remote_size > 0 and actual_size != remote_size:
-                        print(f"WARNING: Downloaded size ({actual_size:,}) doesn't match expected ({remote_size:,})")
+                        logger.warning(f"Downloaded size ({actual_size:,}) doesn't match expected ({remote_size:,})")
                         if attempt < max_retries - 1:
-                            print("Retrying...")
+                            logger.info("Retrying...")
                             continue
                     else:
-                        print(f"Successfully downloaded {filename} ({actual_size:,} bytes)")
+                        logger.info(f"Successfully downloaded {filename} ({actual_size:,} bytes)")
                         return
                     
             except (ChunkedEncodingError, ConnectionError, RequestException, Timeout) as e:
-                print(f"Download failed (attempt {attempt + 1}): {e}")
+                logger.warning(f"Download failed (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
                     wait_time = min(60, 5 * (2 ** attempt))  # Exponential backoff, max 60s
-                    print(f"Waiting {wait_time} seconds before retry...")
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
     
-    print(f"Failed to download {filename} after {max_retries} attempts")
+    logger.error(f"Failed to download {filename} after {max_retries} attempts")
 
 def download_olmo_checkpoint(checkpoint_url, output_dir, wandb_project=None, wandb_entity=None):
     """
@@ -267,7 +271,7 @@ def download_olmo_checkpoint(checkpoint_url, output_dir, wandb_project=None, wan
                 reinit='return_previous',  # chain this script with other scripts into a single wandb run
             )
     except ImportError:
-        print("wandb not installed, skipping wandb logging.")
+        logger.info("wandb not installed, skipping wandb logging.")
     
     # Files to download - now we check existence before attempting
     files = ['config.yaml', 'model.pt', 'optim.pt', 'train.pt', 'model.safetensors', 'optim.safetensors']
@@ -279,15 +283,15 @@ def download_olmo_checkpoint(checkpoint_url, output_dir, wandb_project=None, wan
         file_url = f"{base_url}/{file}"
         download_file(file_url, output_dir, file)
     
-    print("\nDownload summary:")
-    print(f"Output directory: {output_dir}")
+    logger.info("\nDownload summary:")
+    logger.info(f"Output directory: {output_dir}")
     for file in files:
         filepath = os.path.join(output_dir, file)
         if os.path.exists(filepath):
             size_gb = os.path.getsize(filepath) / (1024**3)
-            print(f"  ✓ {file}: {size_gb:.2f}GB")
+            logger.info(f"  {file}: {size_gb:.2f}GB")
         else:
-            print(f"  ✗ {file}: Not downloaded")
+            logger.info(f"  {file}: Not downloaded")
 
 def main():
     """Main function for command-line usage."""

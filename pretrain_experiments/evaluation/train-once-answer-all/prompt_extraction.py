@@ -2,8 +2,11 @@
 
 from pretrain_experiments.script_utils import load_jsonl, save_jsonl
 from pretrain_experiments.evaluation.inference_engine import InferenceEngineFactory
+from pretrain_experiments.logging_config import get_logger
 
 from rouge_score import rouge_scorer
+
+logger = get_logger(__name__)
 
 rougeL_scorer = rouge_scorer.RougeScorer(["rougeL"])
 
@@ -27,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-generations", type=int, default=1, help="Number of generations per prompt")
     args, unknown_args = parser.parse_known_args()
     if unknown_args:
-        print(f"Warning: Unknown arguments ignored: {unknown_args}")
+        logger.warning(f"Unknown arguments ignored: {unknown_args}")
 
     # load the prompts 
     prompts = ds.load_dataset("mrm8488/unnatural-instructions-full", split="train")
@@ -48,11 +51,11 @@ if __name__ == "__main__":
 
     if args.verbose:
         for i in range(len(prompts)):
-            print(f"Prompt {i}: {prompts[i]}")
+            logger.info(f"Prompt {i}: {prompts[i]}")
             for k_gen in range(args.num_generations):
-                print(f" Generation {k_gen}: {generations_list[k_gen][i]}")
-                print(f"  Rouge-L: {rougeL_scorer.score(prompts[i], generations_list[k_gen][i])['rougeL'].recall:.4f}")
-            print()
+                logger.info(f" Generation {k_gen}: {generations_list[k_gen][i]}")
+                logger.info(f"  Rouge-L: {rougeL_scorer.score(prompts[i], generations_list[k_gen][i])['rougeL'].recall:.4f}")
+            logger.info("")
 
     # we count the prompt as "extracted" of the rougeL recall is above a certain threshold
     threshold = 0.9
@@ -68,16 +71,16 @@ if __name__ == "__main__":
                 num_extracted += 1
         results[f"leakage_at_{k_gen+1}"] = num_extracted / len(prompts)
 
-    print("Evaluation results:")
+    logger.info("Evaluation results:")
     for k, v in results.items():
-        print(f"{k}: {v:.4f}")
+        logger.info(f"{k}: {v:.4f}")
 
     # save the results to a yaml file if requested
     if args.results_yaml:
         import yaml
         with open(args.results_yaml, 'w') as f:
             yaml.dump(results, f)
-        print(f"Results saved to {args.results_yaml}")
+        logger.info(f"Results saved to {args.results_yaml}")
 
     # save detailed results if requested
     if args.detailed_results_jsonl:
@@ -90,6 +93,6 @@ if __name__ == "__main__":
             }
             detailed_results.append(entry)
         save_jsonl(detailed_results, args.detailed_results_jsonl)
-        print(f"Detailed results saved to {args.detailed_results_jsonl}")
+        logger.info(f"Detailed results saved to {args.detailed_results_jsonl}")
 
 

@@ -9,9 +9,12 @@ _RESOURCES = Path(__file__).resolve().parent.parent.parent.parent / "resources" 
 
 from pretrain_experiments.script_utils import load_jsonl, save_jsonl
 from pretrain_experiments.evaluation.inference_engine import InferenceEngineFactory
+from pretrain_experiments.logging_config import get_logger
 from transformers import AutoTokenizer
 
 import numpy as np
+
+logger = get_logger(__name__)
 
 
 def check_memorized_sequences(model: str, revision: str, task_file: str, results_file: str = None, print_responses: bool = False):
@@ -40,10 +43,10 @@ def check_memorized_sequences(model: str, revision: str, task_file: str, results
             targets.append(token_ids[25:50])
     
     if not inputs:
-        print("No sequences with at least 50 tokens found in task file.")
+        logger.warning("No sequences with at least 50 tokens found in task file.")
         return {'num_memorized_sequences': 0, 'num_total_sequences': len(sequences)}
     
-    print(f"Checking {len(inputs)} sequences (out of {len(sequences)} total) that have at least 50 tokens...")
+    logger.info(f"Checking {len(inputs)} sequences (out of {len(sequences)} total) that have at least 50 tokens...")
     
     # generate with the model
     generated_token_ids = engine.generate_text(inputs, return_token_ids=True, temperature=0.0, max_tokens=25)
@@ -64,10 +67,10 @@ def check_memorized_sequences(model: str, revision: str, task_file: str, results
         if generation == target:
             memorized_sequences.append(seq)
             if print_responses:
-                print(f"MEMORIZED SEQUENCE:")
-                print(f"Text: {tokenizer.decode(seq['token_ids'][:50])}")
-                print(f"Token IDs: {seq['token_ids'][:50]}")
-                print("="*80)
+                logger.info(f"MEMORIZED SEQUENCE:")
+                logger.info(f"Text: {tokenizer.decode(seq['token_ids'][:50])}")
+                logger.info(f"Token IDs: {seq['token_ids'][:50]}")
+                logger.info("="*80)
         else:
             non_memorized_sequences.append({
                 'sequence': seq,
@@ -76,13 +79,13 @@ def check_memorized_sequences(model: str, revision: str, task_file: str, results
                 'target_tokens': target
             })
     
-    print(f"Found {len(memorized_sequences)} memorized sequences out of {len(valid_sequences)} checked.")
-    print(f"({len(sequences) - len(valid_sequences)} sequences were too short to check)")
+    logger.info(f"Found {len(memorized_sequences)} memorized sequences out of {len(valid_sequences)} checked.")
+    logger.info(f"({len(sequences) - len(valid_sequences)} sequences were too short to check)")
     
     # save results if requested
     if results_file:
         results_file = os.path.abspath(results_file)
-        print(f"Saving detailed results to {results_file}")
+        logger.info(f"Saving detailed results to {results_file}")
         if not os.path.exists(os.path.dirname(results_file)):
             os.makedirs(os.path.dirname(results_file))
         
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action='store_true', help="Print memorized sequences as they are found")
     args, unknown_args = parser.parse_known_args()
     if unknown_args:
-        print(f"Warning: Unknown arguments ignored: {unknown_args}")
+        logger.warning(f"Unknown arguments ignored: {unknown_args}")
     
     results = check_memorized_sequences(
         args.model, 
@@ -132,4 +135,4 @@ if __name__ == "__main__":
         import yaml
         with open(args.results_yaml, 'w') as f:
             yaml.dump(results, f)
-        print(f"Summary results saved to {args.results_yaml}")
+        logger.info(f"Summary results saved to {args.results_yaml}")

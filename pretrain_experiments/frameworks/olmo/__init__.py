@@ -13,6 +13,9 @@ from transformers import AutoTokenizer
 from ...framework import Framework, register_framework
 from ...checkpoint import Checkpoint
 from ...script_utils import find_free_port
+from ...logging_config import get_logger
+
+logger = get_logger(__name__)
 
 from .OLMo2UnshardedCheckpoint import OLMo2UnshardedCheckpoint
 from .insertion import setup_experiments as _setup_experiments
@@ -179,7 +182,7 @@ class OLMoFramework(Framework):
                 with open(gaussian_poisoning_config_file, "wb") as f:
                     pickle.dump(config, f)
                 os.environ["OLMO_GAUSSIAN_POISONING_CONFIG_FILE"] = gaussian_poisoning_config_file
-                print(
+                logger.info(
                     f"Set up Gaussian poisoning for {len(config['batch_indices'])} "
                     f"batches with noise std {config['noise_std']}."
                 )
@@ -250,7 +253,7 @@ class OLMoFramework(Framework):
                 value_str = str(value)
             training_script_cmd.append(f"--{key}={value_str}")
 
-        print(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_script_cmd)}")
+        logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_script_cmd)}")
 
         if dry_run:
             return checkpoint  # Return same checkpoint to simulate success

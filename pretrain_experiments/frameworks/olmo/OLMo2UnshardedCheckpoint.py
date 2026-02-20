@@ -7,6 +7,9 @@ import torch
 import yaml
 
 from ...checkpoint import Checkpoint
+from ...logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def checkpoint_step_from_checkpoint_path(checkpoint_path: str):
@@ -113,12 +116,12 @@ class OLMo2UnshardedCheckpoint(Checkpoint):
         for safetensor_file, state_dict_file in [("model.safetensors", "model.pt"), ("optim.safetensors", "optim.pt")]:
             if not os.path.exists(os.path.join(input_dir, state_dict_file)):
                 if os.path.exists(os.path.join(input_dir, safetensor_file)):
-                    print(f"Converting safetensors to state dict format for {input_dir}...")
+                    logger.info(f"Converting safetensors to state dict format for {input_dir}...")
                     from olmo.safetensors_util import safetensors_file_to_state_dict
                     state_dict = safetensors_file_to_state_dict(os.path.join(input_dir, safetensor_file), map_location="cpu")
                     torch.save(state_dict, os.path.join(input_dir, state_dict_file))
                 else:
-                    print(f"WARNING: Neither {safetensor_file} nor {state_dict_file} found in {input_dir}.")
+                    logger.warning(f"Neither {safetensor_file} nor {state_dict_file} found in {input_dir}.")
 
         # call conversion script
         result = subprocess.run([

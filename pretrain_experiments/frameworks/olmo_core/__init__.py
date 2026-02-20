@@ -18,6 +18,9 @@ from ...checkpoint import Checkpoint
 from ...script_utils import find_free_port
 from ...token_insertion import convert_insert_dict_to_index_map
 from ...insertion_map import InsertionMapWriter
+from ...logging_config import get_logger
+
+logger = get_logger(__name__)
 
 from .OLMoCoreCheckpoint import OLMoCoreCheckpoint
 from .download_checkpoint import download_checkpoint
@@ -204,10 +207,10 @@ class OLMoCoreFramework(Framework):
         num_tokens = sum(len(tokens) for tokens in insert_dict.values())
         self._last_setup_info = {"num_inserted_tokens": num_tokens}
 
-        print(f"Created insertion map at {optimized_path}")
-        print(f"  - {len(index_map)} sequences with insertions")
-        print(f"  - {num_tokens} total tokens to insert")
-        print(f"Set OLMO_CORE_INSERTION_MAP_FILE={optimized_path}")
+        logger.info(f"Created insertion map at {optimized_path}")
+        logger.info(f"  - {len(index_map)} sequences with insertions")
+        logger.info(f"  - {num_tokens} total tokens to insert")
+        logger.info(f"Set OLMO_CORE_INSERTION_MAP_FILE={optimized_path}")
 
     def train(
         self,
@@ -315,7 +318,7 @@ class OLMoCoreFramework(Framework):
                 value_str = str(value)
             training_cmd.append(f"{key}={value_str}")
 
-        print(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_cmd)}")
+        logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_cmd)}")
 
         if dry_run:
             return checkpoint  # Return same checkpoint to simulate success

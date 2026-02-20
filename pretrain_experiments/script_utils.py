@@ -11,6 +11,10 @@ import time
 import importlib
 from functools import wraps
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 def load_jsonl(filepath):
     """
     Load a JSONL (JSON Lines) file into a list of dictionaries.
@@ -91,9 +95,9 @@ def savely_remove_anything(path):
             shutil.rmtree(path)
         else:
             path.unlink()
-        print(f"Deleted: {path}")
+        logger.info(f"Deleted: {path}")
     except OSError as e:
-        print(f"ERROR: Failed to delete {path}: {e}")
+        logger.error(f"Failed to delete {path}: {e}")
 
 
 def run_python_script(script_path, args_string="", results_yaml_file=None, cwd=None, dry_run=False, **kwargs):
@@ -125,9 +129,9 @@ def run_python_script(script_path, args_string="", results_yaml_file=None, cwd=N
         cmd.extend([f'--{key}', str(value)])
 
     # Run the script
-    print(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(cmd)}")
+    logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(cmd)}")
     if cwd:
-        print(f"Working directory: {cwd}")
+        logger.info(f"Working directory: {cwd}")
 
     if dry_run:
         return True, {}, None
@@ -143,31 +147,31 @@ def run_python_script(script_path, args_string="", results_yaml_file=None, cwd=N
     #  upon failure, print output if there's any
     success = result.returncode == 0
     if not success:
-        print(f"Script failed with return code: {result.returncode}")
+        logger.error(f"Script failed with return code: {result.returncode}")
         if result.stdout:
-            print("STDOUT:", result.stdout)
+            logger.error("STDOUT: %s", result.stdout)
         if result.stderr:
-            print("STDERR:", result.stderr)
+            logger.error("STDERR: %s", result.stderr)
     
     # Check result file if specified
     result_data = None
     if results_yaml_file:
         if not os.path.exists(results_yaml_file):
-            print(f"ERROR: Result file {results_yaml_file} was not created")
+            logger.error(f"Result file {results_yaml_file} was not created")
             return False, None, result
-        
+
         if os.path.getsize(results_yaml_file) == 0:
-            print(f"ERROR: Result file {results_yaml_file} is empty")
+            logger.error(f"Result file {results_yaml_file} is empty")
             return False, None, result
-        
+
         try:
             with open(results_yaml_file, 'r') as f:
                 result_data = yaml.safe_load(f)
                 if result_data is None:
-                    print(f"WARNING: Result file contained no data")
+                    logger.warning(f"Result file contained no data")
                     return False, None, result
         except Exception as e:
-            print(f"ERROR: Failed to read result file {results_yaml_file}: {e}")
+            logger.error(f"Failed to read result file {results_yaml_file}: {e}")
             return False, None, result
     
     # return success, result_data, result
@@ -464,12 +468,12 @@ def retry_on_exception(max_retries=3, delay=5, backoff=2):
                 except Exception as e:
                     last_exception = e
                     if attempt < max_retries:
-                        print(f"{func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                        print(f"Retrying in {current_delay} seconds...")
+                        logger.warning(f"{func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                        logger.info(f"Retrying in {current_delay} seconds...")
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:
-                        print(f"{func.__name__} failed after {max_retries + 1} attempts: {e}")
+                        logger.error(f"{func.__name__} failed after {max_retries + 1} attempts: {e}")
             raise last_exception
         return wrapper
     return decorator
@@ -498,7 +502,7 @@ def push_to_hub(
     # Create repo if it doesn't exist
     if not api.repo_exists(repo_id):
         api.create_repo(repo_id, exist_ok=True, private=private)
-        print(f"Created repository: {repo_id}")
+        logger.info(f"Created repository: {repo_id}")
 
     # Create branch if specified
     if revision is not None:
@@ -516,4 +520,4 @@ def push_to_hub(
     repo_url = f"https://huggingface.co/{repo_id}"
     if revision:
         repo_url += f"/tree/{revision}"
-    print(f"Pushed to {repo_url}")
+    logger.info(f"Pushed to {repo_url}")
