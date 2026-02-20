@@ -130,7 +130,7 @@ This will download the checkpoint, insert the texts into the training data, trai
 pretrain-experiments config/OLMo-3-1025-7B-midtrain.yaml --training.num_steps 50
 ```
 
-See the [`config/`](config/) directory for more examples, including configs that reproduce the [paper experiments](config/train-once-answer-all/). For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
+See the [`config/`](config/) directory for more examples. For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
 
 ## How Insertions Work
 
@@ -138,7 +138,7 @@ Insertions modify the training data that the model sees during continued pretrai
 
 **Placement.** By default, insertions are placed at random positions across the training steps. You can also restrict placement to a specific range of steps, or specify exact token positions for full control.
 
-**Multiple sources.** A single experiment can combine insertions from multiple JSONL files — for example, one file with factual knowledge and another with evaluation questions. Each source is configured independently with its own repetition count and placement mode.
+**Multiple sources.** A single experiment can combine insertions from multiple JSONL files. Each source is configured independently with its own repetition count and placement mode.
 
 **Repetitions.** Each text can be repeated multiple times (e.g., `repetitions: 4`) to increase exposure during training. Fractional values like `0.5` randomly sample a subset.
 
