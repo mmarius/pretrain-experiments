@@ -2,6 +2,10 @@
 
 A framework for (continual) pretraining experiments with language models.
 
+<p align="center">
+  <img src="resources/Pretrain-Experiments-Illustration.png" alt="Pretrain Experiments Overview">
+</p>
+
 ## Overview
 
 This package allows you to take an (intermediate) model checkpoint and train it for n steps with modifications to the training data. The package orchestrates this process and integrates evaluation, making it easy to run more complex experiments such as [continual pretraining dependence testing](https://arxiv.org/abs/2509.23383).
