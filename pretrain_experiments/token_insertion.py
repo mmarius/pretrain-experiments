@@ -255,7 +255,6 @@ def wrap_sequences_in_eos_tokens(
     - Adds EOS token at the beginning if there's room and not already present
 
     Sequences that are already sequence_length are kept as-is.
-    Sequences longer than sequence_length or empty are dropped.
 
     Args:
         token_sequences: List of token ID lists
@@ -263,7 +262,10 @@ def wrap_sequences_in_eos_tokens(
         eos_token_id: The EOS token ID to use for wrapping
 
     Returns:
-        List of wrapped token sequences (may be shorter than input due to filtering)
+        List of wrapped token sequences (same length as input)
+
+    Raises:
+        ValueError: If any sequence is empty or exceeds sequence_length
     """
     if not token_sequences:
         return []
@@ -277,19 +279,21 @@ def wrap_sequences_in_eos_tokens(
         second_max_length = sorted(set(len(tokens) for tokens in token_sequences))[-2]
         logger.debug(f"Second maximum sequence length: {second_max_length}")
 
-    num_empty_sequences = 0
-    num_overly_long_sequences = 0
     eos_wrapped_sequences = []
 
-    for sequence in token_sequences:
+    for i, sequence in enumerate(token_sequences):
         if len(sequence) > sequence_length:
-            num_overly_long_sequences += 1
-            continue
+            raise ValueError(
+                f"Sequence {i} has length {len(sequence)}, which exceeds "
+                f"sequence_length={sequence_length}. All sequences must fit "
+                f"within the model's sequence length."
+            )
+        if len(sequence) == 0:
+            raise ValueError(
+                f"Sequence {i} is empty. Empty sequences are not allowed."
+            )
         if len(sequence) == sequence_length:
             eos_wrapped_sequences.append(sequence)
-            continue
-        if len(sequence) == 0:
-            num_empty_sequences += 1
             continue
         # Add EOS at end if not present
         if sequence[-1] != eos_token_id:
@@ -298,11 +302,6 @@ def wrap_sequences_in_eos_tokens(
         if len(sequence) < sequence_length and sequence[0] != eos_token_id:
             sequence = [eos_token_id] + sequence
         eos_wrapped_sequences.append(sequence)
-
-    if num_overly_long_sequences > 0:
-        logger.warning(f"Dropped {num_overly_long_sequences} overly long sequences (longer than {sequence_length} tokens).")
-    if num_empty_sequences > 0:
-        logger.warning(f"Dropped {num_empty_sequences} empty sequences.")
 
     if eos_wrapped_sequences:
         min_length = min(len(tokens) for tokens in eos_wrapped_sequences)
@@ -347,9 +346,12 @@ def add_explicit_insertions(
 
     insert_dict = {}
 
-    for pos, tokens in zip(positions, token_sequences):
+    for i, (pos, tokens) in enumerate(zip(positions, token_sequences)):
         if not tokens:
-            continue
+            raise ValueError(
+                f"Token sequence at index {i} (position {pos}) is empty. "
+                f"Empty sequences are not allowed."
+            )
 
         interval = (pos, pos + len(tokens) - 1)
         if existing_insertions.overlaps(interval):
@@ -445,11 +447,12 @@ def add_random_insertions(
 
             num_collisions += 1
             if num_collisions > 10 * len(token_sequences):
-                logger.warning(
-                    "Too many collisions while inserting sequences. "
-                    "Consider adjusting the range or the number of sequences."
+                raise ValueError(
+                    f"Too many collisions ({num_collisions}) while inserting sequences. "
+                    f"Could not place all {len(token_sequences)} sequences in the range "
+                    f"[{start_idx}, {end_idx}). Consider adjusting the range or the number "
+                    f"of sequences."
                 )
-                break
 
     total_inserted_tokens = sum(len(seq) for seq in insert_dict.values())
     logger.debug(f"Total number of inserted tokens: {total_inserted_tokens}")

@@ -64,9 +64,15 @@ def simulate_get_dataset_item_with_insertions(input_ids_tensor, idx, dataset_ins
 
     if dataset_insertions is not None and idx in dataset_insertions:
         for pos, token_ids in dataset_insertions[idx]:
-            end = min(pos + len(token_ids), len(item["input_ids"]))
+            if pos + len(token_ids) > len(item["input_ids"]):
+                raise RuntimeError(
+                    f"Data insertion error: insertion at position {pos} with {len(token_ids)} tokens "
+                    f"exceeds sequence length {len(item['input_ids'])} for dataset index {idx}. "
+                    f"This indicates a bug in the insertion map construction."
+                )
+            end = pos + len(token_ids)
             item["input_ids"][pos:end] = torch.tensor(
-                token_ids[: end - pos], dtype=item["input_ids"].dtype
+                token_ids, dtype=item["input_ids"].dtype
             )
 
     return item
@@ -242,14 +248,14 @@ def test_multiple_insertions_per_sequence():
 
 
 # ============================================================
-# Test 4: Boundary Clipping
+# Test 4: Insertion Exceeding Sequence Length Raises Error
 # ============================================================
-def test_insertion_clipped_at_sequence_end():
-    """Insertion that extends past the end of the sequence gets clipped."""
+def test_insertion_exceeding_sequence_raises_error():
+    """Insertion that extends past the end of the sequence raises RuntimeError."""
     with tempfile.TemporaryDirectory() as tmpdir:
         SEQ_LENGTH = 32
         TRAINING_IDX = 0
-        # Insert 10 tokens starting at position 28 -> only 4 fit
+        # Insert 10 tokens starting at position 28 -> would exceed sequence length
         insertion_tokens = list(range(90, 100))  # 10 tokens
         insertion_pos = 28
 
@@ -262,17 +268,10 @@ def test_insertion_clipped_at_sequence_end():
         dataset_insertions = simulate_reshuffle_remap(reader, global_indices)
 
         original_ids = make_sequence(SEQ_LENGTH)
-        item = simulate_get_dataset_item_with_insertions(
-            original_ids, TRAINING_IDX, dataset_insertions
-        )
-
-        # Only the first 4 tokens should be inserted (28..31)
-        expected_clipped = insertion_tokens[:SEQ_LENGTH - insertion_pos]
-        actual = item["input_ids"][insertion_pos:].tolist()
-        assert actual == expected_clipped, f"Expected {expected_clipped}, got {actual}"
-
-        # Tokens before insertion unchanged
-        assert all(item["input_ids"][i].item() == 1 for i in range(insertion_pos))
+        with pytest.raises(RuntimeError, match="exceeds sequence length"):
+            simulate_get_dataset_item_with_insertions(
+                original_ids, TRAINING_IDX, dataset_insertions
+            )
 
         reader.close()
 
