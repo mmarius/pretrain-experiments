@@ -49,7 +49,6 @@ pip install -e .[all]
 pip install h5py
 ```
 
-Set `OLMO_REPO` to the clone path, or place it alongside the `pretrain-experiments` directory.
 
 </details>
 
@@ -63,8 +62,6 @@ git checkout pretrain-experiments
 pip install -e .[all]
 pip install h5py
 ```
-
-Set `OLMO_CORE_REPO` to the clone path, or place it alongside the `pretrain-experiments` directory.
 
 </details>
 

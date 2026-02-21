@@ -2,6 +2,14 @@
 
 Experiments are defined in YAML config files. Environment variables are substituted via `${VAR_NAME}` syntax.
 
+The following variables are set automatically at startup and can be used in config files:
+
+| Variable | Value |
+|----------|-------|
+| `PRETRAIN_EXPERIMENTS` | Root directory of the pretrain-experiments repository |
+| `OLMO_REPO` | Root of the OLMo repository (if `olmo` is installed) |
+| `OLMO_CORE_REPO` | Root of the OLMo-Core repository (if `olmo_core` is installed) |
+
 ## Minimal example
 
 ```yaml
