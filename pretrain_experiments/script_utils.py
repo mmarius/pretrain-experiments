@@ -95,7 +95,7 @@ def savely_remove_anything(path):
             shutil.rmtree(path)
         else:
             path.unlink()
-        logger.info(f"Deleted: {path}")
+        logger.debug(f"Deleted: {path}")
     except OSError as e:
         logger.error(f"Failed to delete {path}: {e}")
 
