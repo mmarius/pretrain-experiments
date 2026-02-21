@@ -21,6 +21,6 @@ singularity exec --nv \
   --env NCCL_TIMEOUT=1800000 \
   --env TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC=1800 \
   --env WANDB__SERVICE_WAIT=6000 \
-  --env OLMES_EXECUTABLE=/weka/luxburg/sbordt10/anaconda3/envs/olmes/bin/olmes \
+  --env OLMES_EXECUTABLE=~/venvs/olmes/bin/olmes \
   pretrain-experiments.sif \
   bash -c "cd /weka/luxburg/sbordt10/pretrain-experiments/pretrain-experiments && python -m pretrain_experiments $*"

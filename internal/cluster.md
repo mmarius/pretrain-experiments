@@ -36,7 +36,7 @@ du -sh */
 
 singularity shell --nv --bind /weka/luxburg/sbordt10:/weka/luxburg/sbordt10 pretrain-experiments.sif
 export OLMES_EXECUTABLE=~/venvs/olmes/bin/olmes
-python -m pretrain_experiments config/olmo-3.yaml
+python -m pretrain_experiments config/OLMo-3-1025-7B-midtrain.yaml
 
 
 cat > pretrain-experiments.def << 'EOF'
