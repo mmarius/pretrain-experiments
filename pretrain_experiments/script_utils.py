@@ -129,7 +129,7 @@ def run_python_script(script_path, args_string="", results_yaml_file=None, cwd=N
         cmd.extend([f'--{key}', str(value)])
 
     # Run the script
-    logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(cmd)}")
+    logger.info(f"{'[DRY RUN] Would run' if dry_run else '\033[1;36mRunning\033[0m'}: {' '.join(cmd)}")
     if cwd:
         logger.info(f"Working directory: {cwd}")
 

@@ -121,7 +121,7 @@ class EvaluationRunner:
         if evaluations:
             logger.info("")
             logger.info("=" * 60)
-            logger.info("Running evaluations")
+            logger.info("\033[1mRunning evaluations\033[0m")
             logger.info("=" * 60)
 
         for eval_idx, eval_spec in enumerate(evaluations):

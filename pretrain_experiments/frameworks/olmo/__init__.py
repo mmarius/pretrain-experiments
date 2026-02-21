@@ -253,7 +253,7 @@ class OLMoFramework(Framework):
                 value_str = str(value)
             training_script_cmd.append(f"--{key}={value_str}")
 
-        logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_script_cmd)}")
+        logger.info(f"{'[DRY RUN] Would run' if dry_run else '\033[1;36mRunning\033[0m'}: {' '.join(training_script_cmd)}")
 
         if dry_run:
             return checkpoint  # Return same checkpoint to simulate success

@@ -207,10 +207,7 @@ class OLMoCoreFramework(Framework):
         num_tokens = sum(len(tokens) for tokens in insert_dict.values())
         self._last_setup_info = {"num_inserted_tokens": num_tokens}
 
-        logger.info(f"Created insertion map at {optimized_path}")
-        logger.info(f"  - {len(index_map)} sequences with insertions")
-        logger.info(f"  - {num_tokens} total tokens to insert")
-        logger.info(f"Set OLMO_CORE_INSERTION_MAP_FILE={optimized_path}")
+        logger.info(f"Insertion map: {optimized_path} ({len(index_map)} sequences)")
 
     def train(
         self,
@@ -306,6 +303,11 @@ class OLMoCoreFramework(Framework):
         if checkpoint_interval is not None:
             training_cmd.append(f"trainer.callbacks.checkpointer.save_interval={checkpoint_interval}")
 
+        # Automatically ignore fingerprint mismatch when using data insertions,
+        # since the insertion map wraps the dataset and changes its fingerprint.
+        if self._insert_dict:
+            training_cmd.append("data_loader.ignore_fingerprint_mismatch=true")
+
         # Add extra training args from config
         training_args = self.config.get("training", {}).get("args", {})
         for key, value in training_args.items():
@@ -317,7 +319,7 @@ class OLMoCoreFramework(Framework):
                 value_str = str(value)
             training_cmd.append(f"{key}={value_str}")
 
-        logger.info(f"{'[DRY RUN] Would run' if dry_run else 'Running'}: {' '.join(training_cmd)}")
+        logger.info(f"{'[DRY RUN] Would run' if dry_run else '\033[1;36mRunning\033[0m'}: {' '.join(training_cmd)}")
 
         if dry_run:
             return checkpoint  # Return same checkpoint to simulate success
