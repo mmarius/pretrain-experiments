@@ -278,8 +278,7 @@ class OLMoCoreFramework(Framework):
         # the LR at its minimum. By leaving max_duration unchanged (from the Python
         # config script), we preserve the original LR schedule.
         # hard_stop is purely a stopping condition with no effect on the LR schedule.
-        training_cmd.append(f"trainer.hard_stop.value={target_step}")
-        training_cmd.append(f"trainer.hard_stop.unit=steps")
+        training_cmd.append(f"trainer.hard_stop={{value: {target_step}, unit: steps}}")
 
         # Log metrics every step
         training_cmd.append(f"trainer.metrics_collect_interval=1")
