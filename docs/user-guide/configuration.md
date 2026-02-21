@@ -127,4 +127,4 @@ Configs support an `include` directive to compose from multiple files:
 include: evaluation.yaml
 ```
 
-See the [`config/`](../config/) directory for complete examples.
+See the [`config/`](https://github.com/sbordt/pretrain-experiments/tree/main/config) directory for complete examples.

@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org)
 [![Paper](https://img.shields.io/badge/Paper-arXiv%202509.23383-b31b1b.svg)](https://arxiv.org/abs/2509.23383)
+[![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://sbordt.github.io/pretrain-experiments/)
 
 </div>
 
@@ -127,7 +128,7 @@ This will download the checkpoint, insert the texts into the training data, trai
 pretrain-experiments config/OLMo-3-1025-7B-midtrain.yaml --training.num_steps 50
 ```
 
-See the [`config/`](config/) directory for more examples. For a full reference of all configuration options, see [`docs/configuration.md`](docs/configuration.md).
+See the [`config/`](config/) directory for more examples. For a full reference of all configuration options, see [`docs/user-guide/configuration.md`](docs/user-guide/configuration.md).
 
 ## How Insertions Work
 
@@ -139,7 +140,7 @@ Insertions modify the training data that the model sees during continued pretrai
 
 **Repetitions.** Each text can be repeated multiple times (e.g., `repetitions: 4`) to increase exposure during training. Fractional values like `0.5` randomly sample a subset.
 
-For details on all insertion types and modes, see [`docs/insertions.md`](docs/insertions.md).
+For details on all insertion types and modes, see [`docs/user-guide/insertions.md`](docs/user-guide/insertions.md).
 
 ## Contributing
 

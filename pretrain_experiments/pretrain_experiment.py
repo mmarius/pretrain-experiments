@@ -231,9 +231,6 @@ def run_experiment():
             savely_remove_anything(tmp_hf_checkpoint_path)
 
         framework.set_experiments(insert_dict)
-        num_tokens = framework.get_last_setup_info().get("num_inserted_tokens", 0)
-        tokens_in_training = batch_size * sequence_length * num_steps_to_train
-        logger.info(f"Inserted {num_tokens:,} tokens ({100 * num_tokens / tokens_in_training:.6f}% of {tokens_in_training:,} tokens in {num_steps_to_train} training steps)")
 
         # call the training script. we retry in case of failure
         max_attempts = 1 + config.get("training.max_retries", 9)
