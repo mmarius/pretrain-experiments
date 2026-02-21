@@ -303,10 +303,8 @@ class OLMoCoreFramework(Framework):
         if checkpoint_interval is not None:
             training_cmd.append(f"trainer.callbacks.checkpointer.save_interval={checkpoint_interval}")
 
-        # Automatically ignore fingerprint mismatch when using data insertions,
-        # since the insertion map wraps the dataset and changes its fingerprint.
-        if self._insert_dict:
-            training_cmd.append("data_loader.ignore_fingerprint_mismatch=true")
+        # Ignore fingerprint mismatch (the insertion map wraps the dataset and changes its fingerprint)
+        training_cmd.append("data_loader.ignore_fingerprint_mismatch=true")
 
         # Add extra training args from config
         training_args = self.config.get("training", {}).get("args", {})
