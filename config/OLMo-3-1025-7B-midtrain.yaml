@@ -16,7 +16,6 @@ training:
   num_steps: 100
   args:
     train_module.rank_microbatch_size: 8192
-    dataset.mix: OLMo-midtraining-mix-0625-100B  # upstream typo: enum resolves to 0725 but file is 0625
 
 experiments:
   experiments:
