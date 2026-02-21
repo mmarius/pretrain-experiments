@@ -31,4 +31,3 @@ evaluation:
       args:
         task: arc_challenge::olmes
         split: test
-        environment: olmes
