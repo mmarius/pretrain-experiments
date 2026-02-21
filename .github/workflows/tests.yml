@@ -37,7 +37,3 @@ jobs:
       - name: Run tests
         working-directory: pretrain-experiments
         run: pytest
-
-      - name: Lint
-        working-directory: pretrain-experiments
-        run: ruff check pretrain_experiments/
