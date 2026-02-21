@@ -16,6 +16,7 @@ training:
   num_steps: 100
   args:
     train_module.rank_microbatch_size: 8192
+    data_loader.num_workers: 0
 
 experiments:
   experiments:
