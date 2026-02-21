@@ -4,6 +4,7 @@
 
 **A framework for controlled pretraining experiments with language models**
 
+[![Tests](https://github.com/sbordt/pretrain-experiments/actions/workflows/tests.yml/badge.svg)](https://github.com/sbordt/pretrain-experiments/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org)
 [![Paper](https://img.shields.io/badge/Paper-arXiv%202509.23383-b31b1b.svg)](https://arxiv.org/abs/2509.23383)
