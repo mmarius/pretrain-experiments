@@ -45,6 +45,12 @@ dev = [
     "black",
     "ruff",
 ]
+docs = [
+    "sphinx",
+    "furo",
+    "myst-parser",
+    "sphinx-copybutton",
+]
 
 [project.scripts]
 pretrain-experiments = "pretrain_experiments.cli:main"
