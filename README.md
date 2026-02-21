@@ -20,7 +20,7 @@ Take a language model checkpoint, continue training with targeted data intervent
 ## Features
 
 - 🧬 Inject texts or tokens at precise positions in the training data
-- 🔌 Supports [OLMo-2](https://github.com/allenai/OLMo) and [OLMo-3](https://github.com/allenai/OLMo-core), extensible to other frameworks
+- 🔌 Supports [OLMo](https://github.com/allenai/OLMo) and [OLMo-Core](https://github.com/allenai/OLMo-core), extensible to other frameworks
 - 📊 Run benchmarks and custom evaluation scripts on every checkpoint
 - 📋 Automatic Weights & Biases logging
 - ⚙️ YAML configs with environment variable substitution and CLI overrides
@@ -40,7 +40,7 @@ pip install -e .
 You need at least one training backend. Each requires a modified fork with data insertion support.
 
 <details>
-<summary><b>OLMo-2</b> (used in the ICLR 2026 paper)</summary>
+<summary><b>OLMo</b> (used in the ICLR 2026 paper)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo
@@ -54,7 +54,7 @@ pip install h5py
 </details>
 
 <details>
-<summary><b>OLMo-3</b> (OLMo-Core, for newer models)</summary>
+<summary><b>OLMo-Core</b> (for newer models)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo-core
