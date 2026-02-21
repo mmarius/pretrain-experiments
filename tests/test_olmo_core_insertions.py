@@ -153,7 +153,6 @@ def test_raw_token_insertion():
         )
         assert item_other["input_ids"][INSERTION_POS].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -199,7 +198,6 @@ def test_text_encode_decode():
         assert decoded == text
         assert item["input_ids"][len(token_ids)].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -244,7 +242,6 @@ def test_multiple_insertions_per_sequence():
         assert item["input_ids"][150].item() == 1
         assert item["input_ids"][300].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -273,7 +270,6 @@ def test_insertion_exceeding_sequence_raises_error():
                 original_ids, TRAINING_IDX, dataset_insertions
             )
 
-        reader.close()
 
 
 # ============================================================
@@ -342,7 +338,6 @@ def test_full_pipeline_from_insert_dict():
         )
         assert (item["input_ids"] == 1).all()
 
-        reader.close()
 
 
 # ============================================================
@@ -370,7 +365,6 @@ def test_insertion_at_position_zero():
         assert item["input_ids"][:len(TOKENS)].tolist() == TOKENS
         assert item["input_ids"][len(TOKENS)].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -399,7 +393,6 @@ def test_insertion_at_last_position():
         assert item["input_ids"][LAST_POS].item() == 99
         assert item["input_ids"][LAST_POS - 1].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -428,7 +421,6 @@ def test_single_token_insertion():
         assert item["input_ids"][POS - 1].item() == 1
         assert item["input_ids"][POS + 1].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -459,7 +451,6 @@ def test_large_token_insertion():
         assert item["input_ids"][POS - 1].item() == 1
         assert item["input_ids"][POS + len(TOKENS)].item() == 1
 
-        reader.close()
 
 
 # ============================================================
@@ -501,7 +492,6 @@ def test_many_sequences_with_insertions():
                     actual = item["input_ids"][pos:pos+len(tokens)].tolist()
                     assert actual == tokens
 
-        reader.close()
 
 
 # ============================================================
@@ -531,7 +521,6 @@ def test_no_insertions_for_index():
         )
         assert (item["input_ids"] == 42).all(), "Sequence without insertions should be unchanged"
 
-        reader.close()
 
 
 def test_empty_dataset_insertions():
@@ -582,7 +571,6 @@ def test_reshuffle_maps_correctly():
         # 1 not in dataset_insertions
         assert 1 not in dataset_insertions
 
-        reader.close()
 
 
 # ============================================================
@@ -614,7 +602,6 @@ def test_writer_reader_cross_compatibility_edge_cases():
         assert reader.load(999) is None
         assert not reader.has_index(999)
 
-        reader.close()
 
 
 # ============================================================
@@ -685,7 +672,6 @@ def test_full_pipeline_with_shuffle():
                     f"Training idx {training_idx} -> dataset idx {dataset_idx}, " \
                     f"pos {pos}: expected {tokens}, got {actual}"
 
-        reader.close()
 
 
 if __name__ == "__main__":
