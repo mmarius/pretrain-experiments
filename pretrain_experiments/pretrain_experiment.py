@@ -236,6 +236,20 @@ def run_experiment():
         max_attempts = 1 + config.get("training.max_retries", 9)
         num_steps_this_iteration = min(num_steps_per_control, initial_checkpoint_step + num_steps_to_train - current_step)
 
+        # warn if any insertions fall outside the training range
+        if insert_dict:
+            start_token = current_step * batch_size * sequence_length
+            end_token = (current_step + num_steps_this_iteration) * batch_size * sequence_length
+            out_of_range = [pos for pos in insert_dict if pos < start_token or pos >= end_token]
+            if out_of_range:
+                logger.warning(
+                    f"{len(out_of_range)} of {len(insert_dict)} insertions fall outside the training range "
+                    f"(steps {current_step}-{current_step + num_steps_this_iteration}, "
+                    f"tokens {start_token}-{end_token}). "
+                    f"Out-of-range positions: min={min(out_of_range)}, max={max(out_of_range)}. "
+                    f"These insertions will be ignored during training."
+                )
+
         for attempt in range(max_attempts):
             # pass checkpoint to train (None if no weights, e.g. from-scratch training)
             train_checkpoint = current_checkpoint if current_checkpoint.has_weights() else None
