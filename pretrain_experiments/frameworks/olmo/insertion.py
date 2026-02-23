@@ -132,6 +132,10 @@ def insert_dict_to_olmo(insert_dict: Union[Dict[int, str], Dict[int, List[int]]]
     insert_dict_path = os.path.abspath(insert_dict_path)
     with open(insert_dict_path, "wb") as f:
             pickle.dump(memmap_insert_dict, f)
+    if "OLMO_EXPERIMENT_INSERTIONS_FILE" in os.environ:
+        logger.warning(f"OLMO_EXPERIMENT_INSERTIONS_FILE is already set to '{os.environ['OLMO_EXPERIMENT_INSERTIONS_FILE']}', overwriting.")
+    if "OLMO_CORE_INSERTION_MAP_FILE" in os.environ:
+        logger.warning(f"OLMO_CORE_INSERTION_MAP_FILE is already set to '{os.environ['OLMO_CORE_INSERTION_MAP_FILE']}', overwriting.")
     os.environ['OLMO_EXPERIMENT_INSERTIONS_FILE'] = insert_dict_path
 
     num_tokens = np.sum([np.sum([len(x[1]) for x in v]) for v in memmap_insert_dict.values()])

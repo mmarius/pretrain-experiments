@@ -177,6 +177,7 @@ class OLMoCoreFramework(Framework):
             insert_dict: Dict mapping global token positions to token sequences.
         """
         if not insert_dict:
+            os.environ.pop("OLMO_CORE_INSERTION_MAP_FILE", None)
             self._last_setup_info = {"num_inserted_tokens": 0}
             return
 
@@ -201,6 +202,10 @@ class OLMoCoreFramework(Framework):
         writer.save_optimized(optimized_path)
 
         # Set environment variable for OLMo-core to find the insertion map
+        if "OLMO_CORE_INSERTION_MAP_FILE" in os.environ:
+            logger.warning(f"OLMO_CORE_INSERTION_MAP_FILE is already set to '{os.environ['OLMO_CORE_INSERTION_MAP_FILE']}', overwriting.")
+        if "OLMO_EXPERIMENT_INSERTIONS_FILE" in os.environ:
+            logger.warning(f"OLMO_EXPERIMENT_INSERTIONS_FILE is already set to '{os.environ['OLMO_EXPERIMENT_INSERTIONS_FILE']}', overwriting.")
         os.environ["OLMO_CORE_INSERTION_MAP_FILE"] = optimized_path
 
         # Track statistics
@@ -304,7 +309,8 @@ class OLMoCoreFramework(Framework):
             training_cmd.append(f"trainer.callbacks.checkpointer.save_interval={checkpoint_interval}")
 
         # Ignore fingerprint mismatch (the insertion map wraps the dataset and changes its fingerprint)
-        training_cmd.append("data_loader.ignore_fingerprint_mismatch=true")
+        if os.environ.get("OLMO_CORE_INSERTION_MAP_FILE"):
+            training_cmd.append("data_loader.ignore_fingerprint_mismatch=true")
 
         # Add extra training args from config
         training_args = self.config.get("training", {}).get("args", {})
