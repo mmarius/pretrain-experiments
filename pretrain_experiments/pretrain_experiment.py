@@ -183,7 +183,11 @@ def run_experiment():
     logger.info(f"Training config: sequence_length={sequence_length}, batch_size={batch_size}, from_scratch={not initial_checkpoint.has_weights()}")
 
     # setup the experiments and set environment variables for olmo training script to include them
-    insertion_builder = InsertionBuilder(config.get("experiments", {}), tokenizer)
+    experiments_config = config.get("experiments", {})
+    if experiments_config.get("skip", False):
+        logger.info("Skipping experiments (experiments.skip is set).")
+        experiments_config = {}
+    insertion_builder = InsertionBuilder(experiments_config, tokenizer)
     insert_dict = insertion_builder.build_static_insertions(
         initial_checkpoint_step, num_steps_to_train, batch_size, sequence_length
     )
