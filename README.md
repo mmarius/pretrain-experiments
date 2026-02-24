@@ -40,7 +40,7 @@ pip install -e .
 You need at least one training backend. Each requires a modified fork with data insertion support.
 
 <details>
-<summary><b>OLMo</b> (used in the ICLR 2026 paper)</summary>
+<summary><b>OLMo</b> (for OLMo-2)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo
@@ -54,7 +54,7 @@ pip install h5py
 </details>
 
 <details>
-<summary><b>OLMo-Core</b> (for newer models)</summary>
+<summary><b>OLMo-Core</b> (for newer OLMo models)</summary>
 
 ```bash
 git clone https://github.com/sbordt/OLMo-core
