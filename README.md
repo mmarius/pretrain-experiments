@@ -23,7 +23,7 @@ Take a language model checkpoint, continue training with targeted data intervent
 - 🔌 Supports [OLMo](https://github.com/allenai/OLMo) and [OLMo-Core](https://github.com/allenai/OLMo-core), extensible to other frameworks
 - 📊 Run benchmarks and custom evaluation scripts on every checkpoint
 - 📋 Automatic Weights & Biases logging
-- ⚙️ YAML configs with environment variable substitution and CLI overrides
+- ⚙️ Everithing is configurable in YAML
 
 ## Installation
 
