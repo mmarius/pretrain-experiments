@@ -2,6 +2,7 @@
 import argparse
 import csv
 import os
+import time
 from pathlib import Path
 import requests
 from tqdm import tqdm
@@ -11,25 +12,40 @@ from ...logging_config import get_logger
 
 logger = get_logger(__name__)
 
-def download_file(url, save_path, chunk_size=8192):
-    """Download a file, returns True if successful, False if empty/skipped."""
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    total_size = int(response.headers.get('content-length', 0))
-    
-    # Skip empty files
-    if total_size == 0:
-        return False
-    
-    save_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(save_path, 'wb') as f:
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc=save_path.name) as pbar:
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                if chunk:
-                    f.write(chunk)
-                    pbar.update(len(chunk))
-    return True
+def download_file(url, save_path, chunk_size=8192, max_retries=5):
+    """Download a file with retries, returns True if successful, False if empty/skipped."""
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, stream=True, timeout=60)
+            response.raise_for_status()
+            total_size = int(response.headers.get('content-length', 0))
+
+            # Skip empty files
+            if total_size == 0:
+                return False
+
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(save_path, 'wb') as f:
+                with tqdm(total=total_size, unit='B', unit_scale=True, desc=save_path.name) as pbar:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+            return True
+        except (requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError) as e:
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt  # 1, 2, 4, 8, 16 seconds
+                logger.warning(f"Download failed for {save_path.name} (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.warning(f"Retrying in {wait}s...")
+                time.sleep(wait)
+                # Remove partial file
+                if save_path.exists():
+                    save_path.unlink()
+            else:
+                raise
 
 def get_content_length(url):
     """Get Content-Length for a URL. Returns:
@@ -216,16 +232,6 @@ def download_checkpoint(url, save_dir):
            else:
                skipped_files.append(file)
                logger.info(f"Skipped {file} (empty)")
-       except requests.exceptions.Timeout:
-           logger.warning(f"Timeout error for {file}, retrying...")
-           try:
-               if download_file(file_url, file_path):
-                   downloaded_files.append(file)
-               else:
-                   skipped_files.append(file)
-           except requests.exceptions.RequestException as e:
-               failed_files.append(file)
-               logger.error(f"Failed to download {file}: {e}")
        except requests.exceptions.RequestException as e:
            failed_files.append(file)
            logger.error(f"Failed to download {file}: {e}")
@@ -242,12 +248,12 @@ def download_checkpoint(url, save_dir):
        for file in dir_files:
            file_url = urljoin(url.rstrip('/') + '/', f"{dir_name}/{file}")
            file_path = dir_path / file
-           
+
            # Skip if already exists with non-zero size
            if file_path.exists() and file_path.stat().st_size > 0:
                logger.info(f"Skipping {dir_name}/{file} (already exists)")
                continue
-           
+
            try:
                logger.info(f"\nDownloading: {dir_name}/{file}")
                if download_file(file_url, file_path):
@@ -255,16 +261,6 @@ def download_checkpoint(url, save_dir):
                else:
                    skipped_files.append(f"{dir_name}/{file}")
                    logger.info(f"Skipped (empty)")
-           except requests.exceptions.Timeout:
-               logger.warning(f"Timeout error for {dir_name}/{file}, retrying...")
-               try:
-                   if download_file(file_url, file_path):
-                       downloaded_files.append(f"{dir_name}/{file}")
-                   else:
-                       skipped_files.append(f"{dir_name}/{file}")
-               except requests.exceptions.RequestException as e:
-                   failed_files.append(f"{dir_name}/{file}")
-                   logger.error(f"Failed to download {dir_name}/{file}: {e}")
            except requests.exceptions.RequestException as e:
                failed_files.append(f"{dir_name}/{file}")
                logger.error(f"Failed to download {dir_name}/{file}: {e}")
@@ -276,6 +272,7 @@ def download_checkpoint(url, save_dir):
    if failed_files:
        logger.error(f"FAILED: {len(failed_files)} files")
        logger.error(f"Failed files: {failed_files}")
+       raise RuntimeError(f"Checkpoint download incomplete: {len(failed_files)} files failed to download: {failed_files}")
 
 def main():
     parser = argparse.ArgumentParser(description='Download OLMo checkpoints')
